@@ -1,0 +1,16 @@
+[package]
+name = "helios-can"
+description = "HELIOS CAN FD matrix: table-driven signal codec, AUTOSAR-style E2E protection, bus-load analysis, DBC export"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+default = []
+std = []
+
+[dependencies]
+
+[lints]
+workspace = true

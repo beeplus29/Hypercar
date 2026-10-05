@@ -1,0 +1,15 @@
+[package]
+name = "helios-dds-sys"
+description = "Raw FFI bindings to Cyclone DDS 0.10.5 (ddsc) plus idlc-generated HELIOS type support"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+links = "ddsc"
+build = "build.rs"
+
+[dependencies]
+
+[build-dependencies]
+bindgen.workspace = true
+cc.workspace = true

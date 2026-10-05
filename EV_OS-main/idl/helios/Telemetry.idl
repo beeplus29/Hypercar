@@ -1,0 +1,50 @@
+// HELIOS DDS data model (OMG IDL 4.2, Cyclone DDS idlc 0.10.5).
+// Domain 42 = vehicle domain (S32G3 central compute <-> AAOS bridge <-> twin).
+// Units are SI unless suffixed. Fixed-size types only: no heap in the C type
+// support, so the Rust side can take samples into stack storage.
+module helios {
+
+  // Published by the VCU gateway (or the digital twin) at 100 Hz, best-effort.
+  struct VehicleTelemetry {
+    @key uint32 vehicle_id;
+    uint64 t_ns;            // monotonic time since power-up
+    float  speed_mps;
+    float  ax_mps2;
+    float  ay_mps2;
+    float  yaw_rate_rps;
+    float  sideslip_deg;
+    float  steer_road_deg;
+    float  accel_pedal;     // 0..1
+    float  brake_pedal;     // 0..1
+    uint8  vehicle_state;   // helios_vsm::VehicleState
+    uint8  gear;            // AOSP VehicleGear bit value (P=4, R=2, N=1, D=8)
+    uint8  drive_mode;      // helios_core::DriveMode
+    uint8  aero_mode;       // helios_core::AeroMode
+    uint32 fault_bits;      // helios_core::FaultSet
+    float  soc_pct;
+    float  pack_voltage_v;
+    float  pack_current_a;
+    float  battery_power_kw;
+    float  discharge_limit_kw;
+    float  regen_limit_kw;
+    float  cell_temp_c;
+    float  coolant_temp_c;
+    float  motor_torque_nm[4];   // FL, FR, RL, RR
+    float  motor_winding_c[4];
+    float  wheel_slip[4];
+    float  tyre_load_n[4];
+    float  downforce_n;
+    float  yaw_moment_nm;
+    float  odometer_m;
+  };
+
+  // Published by the AAOS bridge when the driver changes mode on the cockpit UI.
+  // Reliable + transient-local, keep-last 1. The VCU applies it only through the VSM
+  // mode arbitration (standstill / speed gates), never directly.
+  struct DriveModeRequest {
+    @key uint32 vehicle_id;
+    uint32 seq;
+    uint8  mode;
+    boolean tv_enable;
+  };
+};

@@ -1,0 +1,25 @@
+[package]
+name = "helios-twin"
+description = "HELIOS digital twin: planar twin-track vehicle plant with MF tyres, HV circuit, battery thermal; runs the real VSM/VDC/energy code in the loop"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+helios-core = { workspace = true, features = ["std"] }
+helios-vsm.workspace = true
+helios-vdc.workspace = true
+helios-energy.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+csv.workspace = true
+
+[[bin]]
+name = "helios-twin"
+path = "src/bin/helios-twin.rs"
+
+[lints]
+workspace = true
