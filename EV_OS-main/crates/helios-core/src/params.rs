@@ -5,7 +5,9 @@
 //!   alternate set; 21 in rims at all corners are required by the Donut Lab
 //!   21 in in-wheel motor).
 //! * Steering: DCE dual-MGU EPAS rack, 2.5 turns lock-to-lock.
-//! * Motor: Donut Lab 21 in in-wheel motor, 630 kW / 4,300 Nm peak, 40 kg.
+//! * Motor model: legacy uniform 630 kW / 4,300 Nm / 2,800 rpm placeholder per
+//!   corner. The planned Helix SPX242-175D rear / SPX242-94 front set is
+//!   documented in `docs/triple_hybrid_spec.md` but is not yet modeled here.
 //! * Mass, CG, inertia, aero maps: design-point estimates pending CAD/CFD.
 
 use crate::consts::{DEG, G, RHO_AIR_ISA};

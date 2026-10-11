@@ -3,8 +3,11 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{BufferSize, StreamConfig};
+use std::cell::RefCell;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::mpsc as std_mpsc;
 use std::sync::Arc;
+use std::thread;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
@@ -15,36 +18,28 @@ use webrtc_vad::{Vad, VadMode};
 /// filtering out K.I.T.T.'s own speakers bleeding into the cabin mic.
 const DUCKING_ENERGY_MULTIPLIER: f32 = 4.0;
 
+thread_local! {
+    static THREAD_VAD: RefCell<Vad> = RefCell::new({
+        let mut vad = Vad::new();
+        vad.set_mode(VadMode::VeryAggressive);
+        vad
+    });
+}
+
 pub struct CpalVadDriver {
     /// Atomic flag updated by the audio callback for instant interruption checks
     is_speaking: Arc<AtomicBool>,
     /// When true, raise the energy threshold so the VAD ignores speaker bleed
     ducking: Arc<AtomicBool>,
-    /// Running RMS energy estimate (stored as f32 bits for atomic access)
-    rms_energy: Arc<AtomicU32>,
     /// Channel to receive finalized speech buffers
     speech_rx: tokio::sync::Mutex<mpsc::Receiver<Vec<u8>>>,
-    /// We keep the CPAL stream alive by holding its handle
-    _stream: cpal::Stream,
+    /// Signals the audio thread to release its thread-confined CPAL stream.
+    stop_tx: std_mpsc::Sender<()>,
 }
 
 impl CpalVadDriver {
     pub fn new() -> Result<Self> {
-        let host = cpal::default_host();
-        let device = host.default_input_device().context("No input device available")?;
-
         let sample_rate = 16000; // Whisper and WebRTC VAD prefer 16kHz
-        let config = StreamConfig {
-            channels: 1,
-            sample_rate: cpal::SampleRate(sample_rate),
-            buffer_size: BufferSize::Default,
-        };
-
-        let mut vad = Vad::new();
-        // Very Aggressive mode is best for in-cabin automotive environments
-        // where road noise, wind, and HVAC constantly hit the microphone.
-        vad.set_mode(VadMode::VeryAggressive);
-
         let is_speaking = Arc::new(AtomicBool::new(false));
         let is_speaking_cb = is_speaking.clone();
 
@@ -56,73 +51,112 @@ impl CpalVadDriver {
 
         let (speech_tx, speech_rx) = mpsc::channel(4);
 
-        // Callback state
+        let (ready_tx, ready_rx) = std_mpsc::sync_channel(1);
+        let (stop_tx, stop_rx) = std_mpsc::channel();
+        let _audio_thread = thread::Builder::new()
+            .name("helios-vad-audio".to_string())
+            .spawn(move || {
+                if let Err(e) = Self::run_audio_thread(
+                    sample_rate,
+                    is_speaking_cb,
+                    ducking_cb,
+                    rms_cb,
+                    speech_tx,
+                    stop_rx,
+                    ready_tx,
+                ) {
+                    error!("Microphone VAD thread failed: {e:#}");
+                }
+            })
+            .context("Failed to start microphone audio thread")?;
+
+        ready_rx
+            .recv()
+            .context("Microphone audio thread exited during startup")?
+            .map_err(anyhow::Error::msg)?;
+        info!("Microphone VAD stream active (VeryAggressive, ducking-aware)");
+
+        Ok(Self { is_speaking, ducking, speech_rx: tokio::sync::Mutex::new(speech_rx), stop_tx })
+    }
+
+    fn run_audio_thread(
+        sample_rate: u32,
+        is_speaking: Arc<AtomicBool>,
+        ducking: Arc<AtomicBool>,
+        rms_energy: Arc<AtomicU32>,
+        speech_tx: mpsc::Sender<Vec<u8>>,
+        stop_rx: std_mpsc::Receiver<()>,
+        ready_tx: std_mpsc::SyncSender<std::result::Result<(), String>>,
+    ) -> Result<()> {
+        let host = cpal::default_host();
+        let device = match host.default_input_device().context("No input device available") {
+            Ok(device) => device,
+            Err(error) => {
+                let _ = ready_tx.send(Err(error.to_string()));
+                return Err(error);
+            }
+        };
+        let config = StreamConfig {
+            channels: 1,
+            sample_rate: cpal::SampleRate(sample_rate),
+            buffer_size: BufferSize::Default,
+        };
+
         let mut active_buffer = Vec::<i16>::new();
         let mut silence_frames: u32 = 0;
-        // 60 frames × 10 ms = 600 ms of silence to finalize.
-        // Slightly longer than typical to prevent clipping the driver mid-sentence
-        // at highway speeds where road noise can cause brief VAD dropouts.
         let silence_threshold: u32 = 60;
-        // Minimum speech length: 300 ms (30 frames). Reject pops/clicks.
         let min_speech_frames: usize = 30 * 160;
+        let is_speaking_cb = is_speaking.clone();
+        let ducking_cb = ducking.clone();
+        let rms_cb = rms_energy.clone();
 
-        let stream = device.build_input_stream(
+        let stream = match device.build_input_stream(
             &config,
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                // Convert f32 → i16 for WebRTC VAD
-                let i16_data: Vec<i16> = data.iter().map(|&s| (s * i16::MAX as f32) as i16).collect();
-
-                // Compute RMS energy of this callback buffer
-                let sum_sq: f64 = data.iter().map(|&s| (s as f64) * (s as f64)).sum();
+                let i16_data: Vec<i16> =
+                    data.iter().map(|&sample| (sample * i16::MAX as f32) as i16).collect();
+                let sum_sq: f64 = data.iter().map(|&sample| f64::from(sample).powi(2)).sum();
                 let rms = (sum_sq / data.len().max(1) as f64).sqrt() as f32;
                 rms_cb.store(rms.to_bits(), Ordering::Relaxed);
 
-                // When ducking is active, require the RMS energy to be well above
-                // the speaker bleed floor before even asking the VAD.
                 let ducking_active = ducking_cb.load(Ordering::Relaxed);
                 let energy_floor = if ducking_active { 0.02 * DUCKING_ENERGY_MULTIPLIER } else { 0.0 };
 
-                const FRAME_SIZE: usize = 160; // 10 ms at 16 kHz
-
+                const FRAME_SIZE: usize = 160;
                 for chunk in i16_data.chunks(FRAME_SIZE) {
                     if chunk.len() < FRAME_SIZE {
-                        continue; // Partial frame — skip
+                        continue;
                     }
 
                     let is_voice = if rms < energy_floor {
-                        false // Below ducking floor, suppress
+                        false
                     } else {
-                        vad.is_voice_segment(chunk).unwrap_or(false)
+                        THREAD_VAD.with(|vad| vad.borrow_mut().is_voice_segment(chunk).unwrap_or(false))
                     };
 
                     if is_voice {
                         silence_frames = 0;
-                        if !is_speaking_cb.load(Ordering::Relaxed) {
+                        if !is_speaking_cb.swap(true, Ordering::Relaxed) {
                             debug!("VAD: speech onset");
-                            is_speaking_cb.store(true, Ordering::Relaxed);
                         }
                         active_buffer.extend_from_slice(chunk);
                     } else if is_speaking_cb.load(Ordering::Relaxed) {
-                        // Still recording — append silence to preserve natural cadence
                         active_buffer.extend_from_slice(chunk);
                         silence_frames += 1;
 
                         if silence_frames >= silence_threshold {
                             is_speaking_cb.store(false, Ordering::Relaxed);
-
                             if active_buffer.len() >= min_speech_frames {
                                 debug!(
                                     "VAD: speech finalized — {} samples ({:.1} s)",
                                     active_buffer.len(),
                                     active_buffer.len() as f32 / sample_rate as f32
                                 );
-                                let byte_buffer: Vec<u8> =
-                                    bytemuck::cast_slice(&active_buffer).to_vec();
+                                let byte_buffer = bytemuck::cast_slice(&active_buffer).to_vec();
                                 let _ = speech_tx.try_send(byte_buffer);
                             } else {
                                 debug!("VAD: rejected short utterance ({} samples)", active_buffer.len());
                             }
-
                             active_buffer.clear();
                             silence_frames = 0;
                         }
@@ -131,18 +165,34 @@ impl CpalVadDriver {
             },
             |err| error!("CPAL input stream error: {}", err),
             None,
-        )?;
+        ) {
+            Ok(stream) => stream,
+            Err(error) => {
+                let error = anyhow::Error::from(error);
+                let _ = ready_tx.send(Err(error.to_string()));
+                return Err(error);
+            }
+        };
 
-        stream.play()?;
-        info!("Microphone VAD stream active (VeryAggressive, ducking-aware)");
+        if let Err(error) = stream.play() {
+            let error = anyhow::Error::from(error);
+            let _ = ready_tx.send(Err(error.to_string()));
+            return Err(error);
+        }
+        ready_tx
+            .send(Ok(()))
+            .map_err(|_| anyhow::anyhow!("Microphone audio startup receiver was dropped"))?;
+        while stop_rx.recv_timeout(std::time::Duration::from_millis(100))
+            == Err(std_mpsc::RecvTimeoutError::Timeout)
+        {}
+        drop(stream);
+        Ok(())
+    }
+}
 
-        Ok(Self {
-            is_speaking,
-            ducking,
-            rms_energy,
-            speech_rx: tokio::sync::Mutex::new(speech_rx),
-            _stream: stream,
-        })
+impl Drop for CpalVadDriver {
+    fn drop(&mut self) {
+        let _ = self.stop_tx.send(());
     }
 }
 

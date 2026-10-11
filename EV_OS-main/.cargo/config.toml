@@ -15,4 +15,3 @@ rustflags = ["-C", "target-cpu=cortex-r52"]
 
 [alias]
 xtask-sil = "test -p helios-hil --release"
-fw = "build --manifest-path crates/helios-vcu-fw/Cargo.toml --release --target thumbv7em-none-eabihf"

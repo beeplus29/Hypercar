@@ -265,8 +265,11 @@ impl<T: Topic> Reader<'_, T> {
     }
 }
 
-/// Loopback configuration bundled with the crate (same as config/dds/helios_loopback.xml).
+/// Host loopback profile bundled with the crate.
+#[cfg(not(target_os = "macos"))]
 pub const LOOPBACK_XML: &str = include_str!("../../../config/dds/helios_loopback.xml");
+#[cfg(target_os = "macos")]
+pub const LOOPBACK_XML: &str = include_str!("../../../config/dds/helios_loopback_macos.xml");
 
 #[cfg(test)]
 mod tests {

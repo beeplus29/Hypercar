@@ -42,7 +42,7 @@ impl HeliosVhalService {
             change_mode,
             area_configs: vec![],
             config_array: vec![],
-            config_string: String::new(),
+            config_string: Vec::new(),
             min_sample_rate: min_sample,
             max_sample_rate: max_sample,
         }

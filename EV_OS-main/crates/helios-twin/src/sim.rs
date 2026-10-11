@@ -188,7 +188,11 @@ impl Sim {
             vsm,
             vdc: Vdc::new(p, DT_CTRL as f32),
             ekf: SocEkf::new(p.battery, soc0),
-            sop: state_of_power(&p.battery, &Battery::new(p.battery, CoolantLoop::HELIOS, soc0, t0_c).s, 10.0),
+            sop: state_of_power(
+                &p.battery,
+                &Battery::new(p.battery, CoolantLoop::HELIOS, soc0, t0_c).s,
+                10.0,
+            ),
             driver: DriverCmd::default(),
             inj: Injected::default(),
             t: 0.0,
@@ -250,7 +254,6 @@ impl Sim {
             service_reset: false,
         };
         let vo = self.vsm.step(&vin);
-        let r = self.p.radii();
         let vdc_in = VdcInputs {
             vx: s.vx as f32,
             vy: s.vy as f32,
@@ -274,12 +277,13 @@ impl Sim {
             decel_request: vo.decel_request,
             tv_enable: self.driver.tv_enable,
         };
-        let _ = r;
         let co = self.vdc.step(&vdc_in);
         let hv_on = vo.contactors.main_pos && vo.contactors.main_neg;
         let motors_live = hv_on && (vo.torque_enable || vo.regen_enable);
         let pin = PlantInputs {
-            motor_cmd: core::array::from_fn(|k| if motors_live && vo.motor_enable[k] { co.motor_torque[k] as f64 } else { 0.0 }),
+            motor_cmd: core::array::from_fn(|k| {
+                if motors_live && vo.motor_enable[k] { co.motor_torque[k] as f64 } else { 0.0 }
+            }),
             brake_cmd: co.brake_torque.map(|b| b as f64),
             delta_road: self.driver.steer_road,
             aero_mode: co.aero_mode,
@@ -355,9 +359,9 @@ impl Sim {
         self.driver.start_button = true;
         self.run_for(0.05);
         self.driver.start_button = false;
-        let t = self
-            .run_until(2.0, |s| s.vsm.state() == VehicleState::Ready)
-            .ok_or_else(|| anyhow::anyhow!("no Ready: state {:?} faults {:?}", self.vsm.state(), self.vsm.faults()))?;
+        let t = self.run_until(2.0, |s| s.vsm.state() == VehicleState::Ready).ok_or_else(|| {
+            anyhow::anyhow!("no Ready: state {:?} faults {:?}", self.vsm.state(), self.vsm.faults())
+        })?;
         self.driver.gear_request = Some(Gear::Drive);
         self.run_for(0.01);
         self.driver.gear_request = None;

@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101816">
+  <title>HELIOS Developer Console</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #101816;
+      color: #e8f0eb;
+      --muted: #9aa9a0;
+      --line: #304039;
+      --panel: #18221e;
+      --accent: #9cdb72;
+      --danger: #ff9f8e;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; }
+    main { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 38px 0 60px; }
+    header { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 28px; }
+    .eyebrow { color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 7px 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: -.04em; }
+    p { color: var(--muted); line-height: 1.55; }
+    header p { max-width: 660px; margin: 0; }
+    .badge { border: 1px solid #506447; border-radius: 999px; padding: 8px 12px; color: var(--accent); white-space: nowrap; font-size: 12px; font-weight: 700; }
+    .grid { display: grid; grid-template-columns: minmax(290px, .8fr) minmax(0, 1.5fr); gap: 18px; align-items: start; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+    h2 { margin: 0 0 16px; font-size: 18px; }
+    .hint { margin: -7px 0 18px; font-size: 13px; }
+    label { display: block; margin: 13px 0 6px; color: #c6d2ca; font-size: 12px; font-weight: 700; }
+    input, select { width: 100%; border: 1px solid #46564d; border-radius: 7px; padding: 10px 11px; background: #111916; color: #f0f5f1; font: inherit; }
+    input:focus, select:focus { outline: 2px solid #94c96e; outline-offset: 1px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    button { cursor: pointer; border: 1px solid #749853; border-radius: 7px; background: var(--accent); color: #15200f; padding: 10px 14px; font: inherit; font-weight: 800; }
+    button.secondary { border-color: #46564d; background: #202c26; color: #e8f0eb; }
+    button.remove { border-color: #6c4842; background: transparent; color: var(--danger); padding: 7px 10px; font-size: 12px; }
+    form > button { width: 100%; margin-top: 19px; }
+    .section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .section-head h2 { margin: 0; }
+    .record { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 16px 0; border-top: 1px solid var(--line); }
+    .record:first-child { border-top: 0; }
+    .record h3 { margin: 0 0 5px; font-size: 15px; }
+    .record p { margin: 3px 0; font-size: 13px; }
+    .record-meta { color: #c6d2ca; }
+    .profile { color: var(--accent) !important; overflow-wrap: anywhere; }
+    .empty { border-top: 1px solid var(--line); padding: 20px 0 4px; }
+    .status { margin-top: 18px; }
+    .interface { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13px; }
+    .interface:first-of-type { margin-top: 8px; }
+    .interface-state { color: var(--accent); text-transform: uppercase; font-size: 11px; font-weight: 800; }
+    .notice { border-left: 3px solid #d4ad63; background: #2b281f; padding: 11px 13px; color: #e6d8b7; font-size: 12px; line-height: 1.5; }
+    .mode-picker { display: flex; align-items: center; gap: 8px; }
+    .mode-picker span { color: var(--muted); font-size: 12px; }
+    button.mode { border-color: #46564d; background: #202c26; color: #e8f0eb; padding: 8px 11px; font-size: 12px; }
+    button.mode[aria-pressed="true"] { border-color: #749853; background: #31452b; color: var(--accent); }
+    .template-box { border: 1px solid var(--line); background: #141d19; border-radius: 9px; padding: 13px; margin: 14px 0; }
+    .template-box label { margin-top: 0; }
+    .field-help { margin: 5px 0 10px; font-size: 12px; }
+    details.advanced { margin-top: 17px; border-top: 1px solid var(--line); padding-top: 13px; }
+    details.advanced summary { cursor: pointer; color: var(--accent); font-size: 13px; font-weight: 800; }
+    details.advanced[open] summary { margin-bottom: 10px; }
+    .mode-advanced-only { display: none; }
+    body.advanced-mode .mode-advanced-only { display: block; }
+    body.advanced-mode .advanced.mode-advanced-only { display: block; }
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 17px; }
+    .summary-tile { border: 1px solid var(--line); border-radius: 9px; padding: 12px; background: #141d19; }
+    .summary-number { color: var(--accent); font-size: 21px; font-weight: 800; }
+    .summary-label { color: var(--muted); font-size: 11px; }
+    .search { max-width: 220px; }
+    .duplicate-warning { border-left: 3px solid #d4ad63; padding: 8px 10px; color: #e6d8b7; font-size: 12px; margin-top: 10px; }
+    .checks { margin: 0 0 14px; padding-left: 19px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .checks .check-good { color: var(--accent); }
+    .checks .check-note { color: #e6d8b7; }
+    .record-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+    .form-secondary { width: 100%; margin-top: 8px; }
+    .documents { width: 100%; margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+    .documents summary { cursor: pointer; color: var(--accent); font-size: 13px; font-weight: 800; }
+    .document-upload { display: flex; align-items: flex-end; gap: 10px; margin: 12px 0; }
+    .document-upload label { flex: 1; margin: 0; }
+    .document-upload input { display: block; margin-top: 6px; }
+    .document-upload button { white-space: nowrap; }
+    .document-item { padding: 10px 0; border-top: 1px solid var(--line); }
+    .document-title { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .document-title a { color: #c6d2ca; overflow-wrap: anywhere; }
+    .document-item p { margin: 5px 0; font-size: 12px; }
+    .spec-suggestion { border: 1px solid var(--line); border-radius: 7px; background: #141d19; padding: 10px; margin-top: 8px; }
+    .spec-suggestion p { overflow-wrap: anywhere; }
+    #message { min-height: 20px; margin: 12px 0 0; font-size: 13px; }
+    #message.error { color: var(--danger); }
+    #message.success { color: var(--accent); }
+    .hidden { display: none; }
+    @media (max-width: 760px) {
+      main { width: min(100% - 24px, 560px); padding-top: 24px; }
+      header { align-items: flex-start; flex-direction: column; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <div class="eyebrow">HELIOS · Engineering tools</div>
+        <h1>Hardware console</h1>
+        <p>Maintain a local hardware inventory and save connection profiles for development and bench setup.</p>
+      </div>
+      <div>
+        <div class="badge">DEVELOPER BUILD ONLY</div>
+        <div class="mode-picker" role="group" aria-label="Console experience" style="margin-top: 12px">
+          <span>View:</span>
+          <button class="mode" id="beginner-mode" type="button" aria-pressed="true">Guided</button>
+          <button class="mode" id="advanced-mode" type="button" aria-pressed="false">Advanced</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="panel" aria-labelledby="add-heading">
+        <h2 id="add-heading">Add hardware</h2>
+        <p class="hint">Start with what you know. You can add technical details later; templates only help label the item and do not imply compatibility.</p>
+        <form id="hardware-form">
+          <div class="template-box">
+            <label for="template">What are you adding?</label>
+            <select id="template" name="template">
+              <option value="">Choose a starting point (optional)</option>
+              <option value="battery">Battery pack</option>
+              <option value="bms">Battery management system (BMS)</option>
+              <option value="inverter">Motor / inverter</option>
+              <option value="vcu">Vehicle control unit (VCU)</option>
+              <option value="sensor">Sensor</option>
+              <option value="network">Network adapter / gateway</option>
+              <option value="other">Something else</option>
+            </select>
+            <p class="field-help">This just suggests a name and category. Check the manufacturer documentation before wiring or configuring equipment.</p>
+          </div>
+
+          <label for="name">Display name</label>
+          <input id="name" name="name" maxlength="100" required placeholder="Front inverter">
+          <p class="field-help">A short name you'll recognize in your build, like “Front-left motor inverter”.</p>
+          <div class="two-col">
+            <div>
+              <label for="category">Category</label>
+              <select id="category" name="category">
+                <option>Powertrain</option>
+                <option>Energy storage</option>
+                <option>Vehicle control</option>
+                <option>Sensor</option>
+                <option>Actuator</option>
+                <option>Network / communications</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div>
+              <label for="serial">Serial number</label>
+              <input id="serial" name="serial_number" maxlength="120" placeholder="Optional" autocomplete="off">
+            </div>
+          </div>
+          <p class="field-help">Serial number is usually on the product label. Leave it blank if you don't have it yet.</p>
+          <div class="two-col">
+            <div>
+              <label for="manufacturer">Manufacturer</label>
+              <input id="manufacturer" name="manufacturer" maxlength="100" placeholder="Optional">
+            </div>
+            <div>
+              <label for="model">Model</label>
+              <input id="model" name="model" maxlength="100" placeholder="Optional">
+            </div>
+          </div>
+          <p class="field-help">Not sure yet? Save the item now and fill these in when you can read the label or datasheet.</p>
+
+          <details class="advanced mode-advanced-only" id="connection-options">
+            <summary>Connection profile (optional)</summary>
+            <p class="field-help">Only choose values confirmed by your device manual or existing project setup. Saving a profile does not connect to or configure the hardware.</p>
+            <label for="transport">Communication type</label>
+            <select id="transport" name="transport">
+              <option value="none">Not set up yet</option>
+              <option value="socket_can">CAN bus (SocketCAN)</option>
+              <option value="vhal_grpc">Vehicle interface (VHAL gRPC)</option>
+              <option value="dds">DDS messaging</option>
+            </select>
+            <div id="interface-field" class="hidden">
+              <label for="interface">Host interface name</label>
+              <input id="interface" name="interface_name" maxlength="15" placeholder="Select a detected interface or enter one, e.g. can0" list="can-options">
+              <datalist id="can-options"></datalist>
+              <p class="field-help">A name such as can0 identifies a CAN adapter on the computer running this console. It is not a device address.</p>
+            </div>
+            <div id="endpoint-field" class="hidden">
+              <label for="endpoint">Server address</label>
+              <input id="endpoint" name="endpoint" maxlength="255" placeholder="localhost:50051">
+              <p class="field-help">Use the host and port from your verified VHAL setup documentation.</p>
+            </div>
+            <div id="bitrate-field" class="hidden">
+              <label for="bitrate">CAN bitrate (bits per second)</label>
+              <input id="bitrate" name="bitrate" type="number" min="10000" max="10000000" step="1" placeholder="Enter the adapter/device value">
+              <p class="field-help">The adapter and device must use the same bitrate. Do not guess; check the device manual or project configuration.</p>
+            </div>
+          </details>
+          <button id="save-hardware" type="submit">Save hardware</button>
+          <button class="secondary form-secondary hidden" id="cancel-edit" type="button">Cancel edit</button>
+          <p id="message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <div>
+        <section class="panel" aria-labelledby="inventory-heading">
+          <div class="section-head">
+            <h2 id="inventory-heading">Inventory</h2>
+            <div class="record-controls">
+              <button class="secondary mode-advanced-only" id="export-inventory" type="button">Export JSON</button>
+              <button class="secondary" id="refresh-inventory" type="button">Refresh</button>
+            </div>
+          </div>
+          <div class="summary-grid" aria-label="Inventory summary">
+            <div class="summary-tile"><div id="total-count" class="summary-number">0</div><div class="summary-label">Items tracked</div></div>
+            <div class="summary-tile"><div id="profile-count" class="summary-number">0</div><div class="summary-label">Profiles saved</div></div>
+            <div class="summary-tile"><div id="detail-count" class="summary-number">0</div><div class="summary-label">Need more details</div></div>
+          </div>
+          <label for="inventory-search">Find an item</label>
+          <input class="search" id="inventory-search" type="search" placeholder="Search inventory">
+          <ul class="checks" id="inventory-checks" aria-live="polite"></ul>
+          <div id="inventory" aria-live="polite"><p class="empty">Loading inventory…</p></div>
+        </section>
+
+        <section class="panel status" aria-labelledby="interfaces-heading">
+          <div class="section-head">
+            <h2 id="interfaces-heading">Live interfaces</h2>
+            <button class="secondary" id="refresh-interfaces" type="button">Scan</button>
+          </div>
+          <p id="interface-message" class="hint">Checking host interfaces…</p>
+          <div id="interfaces"></div>
+          <div class="notice">Read-only discovery. A detected interface is not proof that it is safe or correctly configured. Saved profiles are not applied and this console does not send commands to vehicle hardware.</div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const form = document.querySelector("#hardware-form");
+    const message = document.querySelector("#message");
+    const inventory = document.querySelector("#inventory");
+    const transport = document.querySelector("#transport");
+    let hardwareRecords = [];
+    let editingId = null;
+    let expandedDocumentSections = new Set();
+
+    async function api(path, options = {}) {
+      const headers = options.body instanceof FormData
+        ? { ...options.headers }
+        : { "Content-Type": "application/json", ...options.headers };
+      const response = await fetch(path, {
+        ...options,
+        headers,
+      });
+      if (!response.ok) {
+        let reason = `${response.status} ${response.statusText}`;
+        try {
+          const body = await response.json();
+          if (body.error) reason = body.error;
+        } catch (_) {}
+        throw new Error(reason);
+      }
+      return response.status === 204 ? null : response.json();
+    }
+
+    function textElement(tag, className, text) {
+      const element = document.createElement(tag);
+      if (className) element.className = className;
+      element.textContent = text;
+      return element;
+    }
+
+    function renderInventory(records) {
+      expandedDocumentSections = new Set(
+        [...inventory.querySelectorAll(".documents[open]")].map(section => section.dataset.hardwareId)
+      );
+      hardwareRecords = records;
+      document.querySelector("#total-count").textContent = records.length;
+      document.querySelector("#profile-count").textContent = records.filter(record => record.connection).length;
+      const needsDetails = records.filter(record =>
+        !record.serial_number ||
+        record.manufacturer === "Not recorded" ||
+        record.model === "Not recorded"
+      ).length;
+      document.querySelector("#detail-count").textContent = needsDetails;
+      renderInventoryChecks(records, needsDetails);
+      inventory.replaceChildren();
+      const query = document.querySelector("#inventory-search").value.trim().toLocaleLowerCase();
+      const visibleRecords = records.filter(record =>
+        [record.name, record.category, record.manufacturer, record.model, record.serial_number || ""]
+          .join(" ").toLocaleLowerCase().includes(query)
+      );
+      if (!visibleRecords.length) {
+        const emptyMessage = query ? "No inventory items match that search." : "No hardware registered yet.";
+        inventory.append(textElement("p", "empty", emptyMessage));
+        return;
+      }
+      for (const record of visibleRecords) {
+        const row = document.createElement("article");
+        row.className = "record";
+        const details = document.createElement("div");
+        details.append(textElement("h3", "", record.name));
+        const manufacturer = record.manufacturer === "Not recorded" ? "" : record.manufacturer;
+        const model = record.model === "Not recorded" ? "" : record.model;
+        const productDetails = [manufacturer, model].filter(Boolean).join(" ");
+        details.append(textElement("p", "record-meta", `${record.category}${productDetails ? ` · ${productDetails}` : ""}`));
+        if (record.serial_number) details.append(textElement("p", "record-meta", `Serial: ${record.serial_number}`));
+        else details.append(textElement("p", "record-meta", "Serial not recorded yet"));
+        if (record.connection) {
+          const bits = [
+            record.connection.transport.replaceAll("_", " "),
+            record.connection.interface_name,
+            record.connection.endpoint,
+            record.connection.bitrate ? `${record.connection.bitrate} bit/s` : null,
+          ].filter(Boolean);
+          details.append(textElement("p", "profile", `Saved profile · ${bits.join(" · ")}`));
+        } else {
+          details.append(textElement("p", "record-meta", "No connection profile"));
+        }
+        const verifiedSpecs = record.documents.flatMap(document =>
+          document.specifications.filter(specification => specification.verified)
+        );
+        for (const specification of verifiedSpecs) {
+          details.append(textElement(
+            "p",
+            "profile",
+            `${specification.name}: ${specification.value} ${specification.unit} · source reviewed`
+          ));
+        }
+        const documentSection = renderDocuments(record);
+        details.append(documentSection);
+        const remove = textElement("button", "remove", "Remove");
+        remove.type = "button";
+        remove.setAttribute("aria-label", `Remove ${record.name}`);
+        const edit = textElement("button", "secondary", "Edit");
+        edit.type = "button";
+        edit.setAttribute("aria-label", `Edit ${record.name}`);
+        edit.addEventListener("click", () => editRecord(record));
+        remove.addEventListener("click", async () => {
+          try {
+            await api(`/api/hardware/${record.id}`, { method: "DELETE" });
+            await refreshInventory();
+            if (editingId === record.id) cancelEdit();
+          } catch (error) {
+            showMessage(error.message, true);
+          }
+        });
+        const actions = document.createElement("div");
+        actions.className = "record-controls";
+        actions.append(edit, remove);
+        row.append(details, actions);
+        inventory.append(row);
+      }
+    }
+
+    function renderDocuments(record) {
+      const section = document.createElement("details");
+      section.className = "documents";
+      section.dataset.hardwareId = String(record.id);
+      section.open = expandedDocumentSections.has(String(record.id));
+      const acceptedCount = record.documents.reduce(
+        (count, document) => count + document.specifications.filter(specification => specification.verified).length,
+        0
+      );
+      const summary = textElement(
+        "summary",
+        "",
+        `Documents & specs (${record.documents.length} file${record.documents.length === 1 ? "" : "s"} · ${acceptedCount} reviewed)`
+      );
+      section.append(summary);
+      section.append(textElement(
+        "p",
+        "field-help",
+        "Upload a datasheet, product label, or notes. Detected values are suggestions only; compare each source line with the original before adding it."
+      ));
+
+      const uploadForm = document.createElement("form");
+      uploadForm.className = "document-upload";
+      const fileLabel = document.createElement("label");
+      fileLabel.textContent = "Choose a file (15 MB max)";
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.accept = ".pdf,.txt,.text,.csv,.png,.jpg,.jpeg,application/pdf,text/plain,text/csv,image/png,image/jpeg";
+      fileInput.required = true;
+      fileLabel.append(fileInput);
+      const uploadButton = textElement("button", "", "Upload & read specs");
+      uploadButton.type = "submit";
+      uploadForm.append(fileLabel, uploadButton);
+      uploadForm.addEventListener("submit", async event => {
+        event.preventDefault();
+        if (!fileInput.files?.length) return;
+        const data = new FormData();
+        data.append("file", fileInput.files[0]);
+        uploadButton.disabled = true;
+        uploadButton.textContent = "Reading document…";
+        try {
+          const result = await api(`/api/hardware/${record.id}/documents`, {
+            method: "POST",
+            body: data,
+          });
+          showMessage(result.extraction_message, false);
+          await refreshInventory();
+        } catch (error) {
+          showMessage(error.message, true);
+        } finally {
+          uploadButton.disabled = false;
+          uploadButton.textContent = "Upload & read specs";
+        }
+      });
+      section.append(uploadForm);
+
+      if (!record.documents.length) {
+        section.append(textElement("p", "record-meta", "No documents uploaded."));
+      }
+      for (const item of record.documents) {
+        const documentItem = document.createElement("div");
+        documentItem.className = "document-item";
+        const title = document.createElement("div");
+        title.className = "document-title";
+        const link = document.createElement("a");
+        link.href = `/api/hardware/${record.id}/documents/${item.id}/file`;
+        link.textContent = item.filename;
+        link.setAttribute("aria-label", `Download ${item.filename}`);
+        const deleteButton = textElement("button", "remove", "Delete file");
+        deleteButton.type = "button";
+        deleteButton.addEventListener("click", async () => {
+          if (!window.confirm(`Delete ${item.filename} and its extracted suggestions?`)) return;
+          try {
+            await api(`/api/hardware/${record.id}/documents/${item.id}`, { method: "DELETE" });
+            await refreshInventory();
+            showMessage("Document deleted.", false);
+          } catch (error) {
+            showMessage(error.message, true);
+          }
+        });
+        title.append(link, deleteButton);
+        documentItem.append(title, textElement("p", "record-meta", item.extraction_message));
+        for (const specification of item.specifications) {
+          const suggestion = document.createElement("div");
+          suggestion.className = "spec-suggestion";
+          suggestion.append(textElement(
+            "strong",
+            "",
+            `${specification.name}: ${specification.value} ${specification.unit}${specification.verified ? " · added to part" : ""}`
+          ));
+          suggestion.append(textElement("p", "record-meta", `Source: “${specification.source_excerpt}”`));
+          const verify = textElement(
+            "button",
+            "secondary",
+            specification.verified ? "Undo review" : "Add to part specs"
+          );
+          verify.type = "button";
+          verify.addEventListener("click", async () => {
+            try {
+              await api(
+                `/api/hardware/${record.id}/documents/${item.id}/specifications/${specification.id}`,
+                {
+                  method: "PUT",
+                  body: JSON.stringify({ verified: !specification.verified }),
+                }
+              );
+              await refreshInventory();
+            } catch (error) {
+              showMessage(error.message, true);
+            }
+          });
+          suggestion.append(verify);
+          documentItem.append(suggestion);
+        }
+        section.append(documentItem);
+      }
+      return section;
+    }
+
+    function editRecord(record) {
+      editingId = record.id;
+      document.querySelector("#add-heading").textContent = `Edit ${record.name}`;
+      document.querySelector("#name").value = record.name;
+      document.querySelector("#category").value = record.category;
+      document.querySelector("#serial").value = record.serial_number || "";
+      document.querySelector("#manufacturer").value = record.manufacturer === "Not recorded" ? "" : record.manufacturer;
+      document.querySelector("#model").value = record.model === "Not recorded" ? "" : record.model;
+      document.querySelector("#template").value = "";
+      const profile = record.connection;
+      transport.value = profile?.transport || "none";
+      document.querySelector("#interface").value = profile?.interface_name || "";
+      document.querySelector("#endpoint").value = profile?.endpoint || "";
+      document.querySelector("#bitrate").value = profile?.bitrate || "";
+      document.querySelector("#save-hardware").textContent = "Update hardware";
+      document.querySelector("#cancel-edit").classList.remove("hidden");
+      if (profile) {
+        document.body.classList.add("advanced-mode");
+        document.querySelector("#advanced-mode").setAttribute("aria-pressed", "true");
+        document.querySelector("#beginner-mode").setAttribute("aria-pressed", "false");
+        document.querySelector("#connection-options").open = true;
+      }
+      updateProfileFields();
+      showMessage("Update what you know. Leave unknown label details blank.", false);
+      document.querySelector("#add-heading").scrollIntoView({ behavior: "smooth", block: "start" });
+      document.querySelector("#name").focus({ preventScroll: true });
+    }
+
+    function cancelEdit() {
+      editingId = null;
+      form.reset();
+      updateProfileFields();
+      document.querySelector("#add-heading").textContent = "Add hardware";
+      document.querySelector("#save-hardware").textContent = "Save hardware";
+      document.querySelector("#cancel-edit").classList.add("hidden");
+      document.querySelector("#connection-options").open = false;
+      showMessage("", false);
+    }
+
+    function renderInventoryChecks(records, needsDetails) {
+      const checks = document.querySelector("#inventory-checks");
+      checks.replaceChildren();
+      const detailsMessage = !records.length
+        ? "When you add parts, record the manufacturer, model, and serial from product labels when available."
+        : needsDetails
+          ? `${needsDetails} item${needsDetails === 1 ? "" : "s"} missing a serial number or product details. Add them from the label when available.`
+          : "Every item has manufacturer, model, and serial details recorded.";
+      checks.append(textElement("li", needsDetails ? "check-note" : "check-good", detailsMessage));
+      const profileCount = records.filter(record => record.connection).length;
+      checks.append(textElement(
+        "li",
+        "check-good",
+        `${profileCount} saved profile${profileCount === 1 ? "" : "s"}; profiles are notes only and are not applied to hardware.`
+      ));
+      checks.append(textElement(
+        "li",
+        "",
+        "These checks help organize your build. They do not assess compatibility, wiring, or safety."
+      ));
+      const suggestedCount = records.reduce(
+        (count, record) => count + record.documents.reduce(
+          (documentCount, document) => documentCount + document.specifications.filter(specification => !specification.verified).length,
+          0
+        ),
+        0
+      );
+      if (suggestedCount) {
+        checks.append(textElement(
+          "li",
+          "check-note",
+          `${suggestedCount} extracted value${suggestedCount === 1 ? "" : "s"} still need review against the document source.`
+        ));
+      }
+    }
+
+    function showMessage(value, isError = false) {
+      message.textContent = value;
+      message.className = isError ? "error" : "success";
+    }
+
+    async function refreshInventory() {
+      renderInventory(await api("/api/hardware"));
+    }
+
+    async function refreshInterfaces() {
+      const messageElement = document.querySelector("#interface-message");
+      const container = document.querySelector("#interfaces");
+      const report = await api("/api/interfaces");
+      messageElement.textContent = report.message;
+      container.replaceChildren();
+      const canOptions = document.querySelector("#can-options");
+      canOptions.replaceChildren();
+      for (const item of report.interfaces) {
+        const option = document.createElement("option");
+        option.value = item.name;
+        canOptions.append(option);
+        const row = document.createElement("div");
+        row.className = "interface";
+        row.append(
+          textElement("strong", "", item.name),
+          textElement("span", "interface-state", item.state),
+        );
+        const useButton = textElement("button", "secondary", "Use for profile");
+        useButton.type = "button";
+        useButton.addEventListener("click", () => {
+          document.body.classList.add("advanced-mode");
+          document.querySelector("#advanced-mode").setAttribute("aria-pressed", "true");
+          document.querySelector("#beginner-mode").setAttribute("aria-pressed", "false");
+          document.querySelector("#connection-options").open = true;
+          transport.value = "socket_can";
+          updateProfileFields();
+          document.querySelector("#interface").value = item.name;
+          document.querySelector("#interface").focus();
+        });
+        row.append(useButton);
+        container.append(row);
+      }
+    }
+
+    function updateTemplate() {
+      const templates = {
+        battery: { name: "Battery pack", category: "Energy storage" },
+        bms: { name: "Battery management system", category: "Energy storage" },
+        inverter: { name: "Motor inverter", category: "Powertrain" },
+        vcu: { name: "Vehicle control unit", category: "Vehicle control" },
+        sensor: { name: "Vehicle sensor", category: "Sensor" },
+        network: { name: "Network adapter", category: "Network / communications" },
+        other: { name: "New hardware", category: "Other" },
+      };
+      const suggestion = templates[document.querySelector("#template").value];
+      if (!suggestion) return;
+      const name = document.querySelector("#name");
+      if (!name.value.trim() || Object.values(templates).some(item => item.name === name.value)) {
+        name.value = suggestion.name;
+      }
+      document.querySelector("#category").value = suggestion.category;
+    }
+
+    function updateProfileFields() {
+      const value = transport.value;
+      document.querySelector("#interface-field").classList.toggle("hidden", !["socket_can", "dds"].includes(value));
+      document.querySelector("#endpoint-field").classList.toggle("hidden", value !== "vhal_grpc");
+      document.querySelector("#bitrate-field").classList.toggle("hidden", value !== "socket_can");
+    }
+
+    document.querySelector("#template").addEventListener("change", updateTemplate);
+    document.querySelector("#beginner-mode").addEventListener("click", () => {
+      document.body.classList.remove("advanced-mode");
+      document.querySelector("#beginner-mode").setAttribute("aria-pressed", "true");
+      document.querySelector("#advanced-mode").setAttribute("aria-pressed", "false");
+      document.querySelector("#connection-options").open = false;
+    });
+    document.querySelector("#advanced-mode").addEventListener("click", () => {
+      document.body.classList.add("advanced-mode");
+      document.querySelector("#beginner-mode").setAttribute("aria-pressed", "false");
+      document.querySelector("#advanced-mode").setAttribute("aria-pressed", "true");
+      document.querySelector("#connection-options").open = true;
+    });
+    document.querySelector("#inventory-search").addEventListener("input", () => renderInventory(hardwareRecords));
+    document.querySelector("#export-inventory").addEventListener("click", () => {
+      const file = new Blob([JSON.stringify(hardwareRecords, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(file);
+      const download = document.createElement("a");
+      download.href = url;
+      download.download = "helios-hardware-inventory.json";
+      download.click();
+      URL.revokeObjectURL(url);
+    });
+    document.querySelector("#cancel-edit").addEventListener("click", cancelEdit);
+
+    transport.addEventListener("change", updateProfileFields);
+    document.querySelector("#refresh-inventory").addEventListener("click", () => {
+      refreshInventory().catch(error => showMessage(error.message, true));
+    });
+    document.querySelector("#refresh-interfaces").addEventListener("click", () => {
+      refreshInterfaces().catch(error => {
+        document.querySelector("#interface-message").textContent = error.message;
+      });
+    });
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const fields = new FormData(form);
+      const connectionType = fields.get("transport");
+      let connection = null;
+      if (connectionType !== "none") {
+        connection = {
+          transport: connectionType,
+          interface_name: fields.get("interface_name") || null,
+          endpoint: fields.get("endpoint") || null,
+          bitrate: fields.get("bitrate") ? Number(fields.get("bitrate")) : null,
+        };
+      }
+      const input = {
+        name: fields.get("name"),
+        category: fields.get("category"),
+        manufacturer: fields.get("manufacturer") || "",
+        model: fields.get("model") || "",
+        serial_number: fields.get("serial_number") || null,
+        connection,
+      };
+      try {
+        const serial = input.serial_number?.trim().toLocaleLowerCase();
+        if (serial && hardwareRecords.some(record =>
+          record.id !== editingId && record.serial_number?.trim().toLocaleLowerCase() === serial
+        )) {
+          showMessage("That serial number is already in your inventory. Check for a duplicate item before saving.", true);
+          return;
+        }
+        const manufacturer = input.manufacturer.trim().toLocaleLowerCase();
+        const model = input.model.trim().toLocaleLowerCase();
+        const similar = manufacturer && model && hardwareRecords.some(record =>
+          record.id !== editingId &&
+          record.manufacturer.toLocaleLowerCase() === manufacturer &&
+          record.model.toLocaleLowerCase() === model
+        );
+        if (similar && !window.confirm("An item with this manufacturer and model is already listed. Add another unit anyway?")) return;
+        await api(editingId ? `/api/hardware/${editingId}` : "/api/hardware", {
+          method: editingId ? "PUT" : "POST",
+          body: JSON.stringify(input),
+        });
+        const wasEditing = editingId !== null;
+        editingId = null;
+        form.reset();
+        updateProfileFields();
+        document.querySelector("#connection-options").open = false;
+        document.querySelector("#add-heading").textContent = "Add hardware";
+        document.querySelector("#save-hardware").textContent = "Save hardware";
+        document.querySelector("#cancel-edit").classList.add("hidden");
+        showMessage(wasEditing ? "Hardware details updated." : "Hardware record saved.");
+        await refreshInventory();
+      } catch (error) {
+        showMessage(error.message, true);
+      }
+    });
+
+    refreshInventory().catch(error => showMessage(error.message, true));
+    refreshInterfaces().catch(error => {
+      document.querySelector("#interface-message").textContent = error.message;
+    });
+  </script>
+</body>
+</html>

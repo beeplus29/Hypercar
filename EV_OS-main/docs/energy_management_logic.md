@@ -1,31 +1,35 @@
 # Energy-Management State Machine & Power Allocation
 
 ## 1. Overview
-This document describes the **target** Energy Management System (EMS) for the three-source powertrain: the Hydrogen Fuel Cell (HFC) is the primary continuous power source, the High-Energy Battery (HEB) supplies bulk storage and balances sustained demand, and the Supercapacitor Bank (SCB) handles short high-power transients and regenerative-braking spikes. It is a design specification, not a description of current runtime behavior: `helios-energy` and `helios-twin` currently model the battery and do not yet implement HFC or SCB dispatch.
+This document describes the **target** Energy Management System (EMS) for the three-source powertrain: the Hydrogen Fuel Cell (HFC) is the primary continuous power source, the High-Energy Battery (HEB) supplies bulk storage and balances demand, and the Supercapacitor Bank (SCB) handles short transients and regenerative-braking peaks. Component power/energy allocations and fault responses are defined provisionally in the [powertrain requirements baseline](triple_hybrid_spec.md).
+
+This is not current runtime behavior: `helios-energy` and `helios-twin` model the battery only and do not implement HFC or SCB dispatch. Battery source limits in the model are assumptions, not qualified hardware limits.
 
 ## 2. Power Allocation Rules
 
 ### 2.1 Discharge (Acceleration)
 1. **Transient / High-Peak Demand (e.g., Launch Control, Hard Acceleration):**
-   - HFC supplies its scheduled continuous baseline, up to its available output.
-   - SCB supplies short high-current bursts; HEB supplies the sustained demand and any power beyond HFC/SCB limits.
+   - HFC supplies the scheduled continuous baseline, clamped to its current available net output and OEM slew limits.
+   - SCB supplies the transient increment only while within voltage, current, temperature, energy, and converter limits.
+   - HEB supplies the remaining demand within its live state-of-power. If sources cannot meet demand, limit torque rather than exceeding a source limit.
 2. **Sustained Highway Cruising:**
-   - HFC is the primary continuous source and operates near its efficient setpoint (e.g., 30-50 kW).
-   - HEB buffers load changes and supplies demand above HFC output. SCB is kept near its target reserve (e.g., ~80% SoC) for sudden overtakes.
+   - HFC is the primary continuous source. Select its operating point from the validated supplier efficiency/ramp map; no efficient setpoint is established in this project yet.
+   - HEB buffers load changes and supplies demand above HFC output. Maintain SCB energy/voltage headroom for both propulsion transients and regenerative braking; do not prescribe an 80% reserve until the module's SOC/voltage relationship and use case are validated.
 3. **Low-Speed / City Driving:**
-   - In hybrid operation, HFC remains the primary continuous source and HEB balances demand. An explicitly selected `EV_ONLY` mode may disable HFC; it is an exception to the normal hybrid strategy.
+   - In hybrid operation, HFC remains the primary continuous source and HEB balances demand. An explicitly selected `EV_ONLY` mode may disable HFC only if supported by the selected system safety concept and energy reserve.
 
 ### 2.2 Charge (Regenerative Braking)
 1. **High-Power Regen (Hard Braking):**
-   - SCB absorbs the initial high-current spike (up to 500 kW), within its voltage, temperature, and state-of-charge limits.
-   - HEB accepts remaining energy within its own charge limits; friction brakes provide the remainder when both electrical sources reach their limits.
+   - SCB absorbs the initial high-current spike up to its live charge limit (500 kW for 5 s is a provisional allocation, not a selected hardware rating).
+   - HEB accepts remaining energy only within its live charge SOP and the provisional 150 kW / 10 s application cap. The twin has a modeled 8C ceiling but does not enforce this application cap or assert a regen-power acceptance threshold yet.
+   - Friction brakes provide the remainder whenever either electrical source is limited, unavailable, or invalid.
 2. **Low-Power Regen (Coasting):**
-   - **Primary:** Routed directly to HEB to maximize overall energy retention.
+   - Route to the source with available charge acceptance and energy headroom; prioritize total system constraints and battery/capacitor thermal limits over a fixed source preference.
 
 ### 2.3 Active Downforce (AGEDS) Operation
-- **Track/Performance Mode:** The twin Schübeler fans draw up to 18 kW continuously to maintain underbody vacuum.
-  - **Power Allocation:** Prioritize available HFC output for the fan load; HEB supplies any shortfall. Respect source and thermal limits rather than assuming the HFC can always increase output.
-  - **Fault Handling:** If HFC faults, HEB assumes the load. If HEB SoC drops below 10%, AGEDS RPM is throttled, reducing downforce to extend range and preserve thermal limits.
+- **Track/Performance Mode:** The fan load is a separate provisional auxiliary load (currently not represented in the energy twin).
+  - **Power Allocation:** Include auxiliary loads in total demand. HFC remains slew- and availability-limited; HEB supplies any shortfall only within its live SOP.
+  - **Fault Handling:** On HFC fault, reduce auxiliary/traction demand to available HEB/SCB capability. Shed or disable non-safety-critical loads before propulsion reserve is exhausted. Any AGEDS safe-state action must be defined by chassis and vehicle-safety analysis, not by battery SOC alone.
 
 ## 3. State Machine Logic
 
@@ -37,8 +41,8 @@ The EMS operates using the following state machine:
 - `STANDBY`: Contactor closed, awaiting drive mode selection.
 - `EV_ONLY`: Optional exception with HFC disabled; running on HEB and SCB.
 - `HYBRID_CRUISE`: HFC active, providing baseline power. HEB/SCB handle transients.
-- `PERFORMANCE_MODE`: All sources available. HFC supplies up to its continuous limit, HEB supplies sustained demand, and SCB is held at a target SoC that leaves regen headroom.
-- `LIMP_HOME`: Critical fault or low SoC. Power limited to 50 kW. SCB disabled.
+- `PERFORMANCE_MODE`: All available sources may be used within their instantaneous limits. HFC follows its validated operating/ramp map, HEB supplies sustained demand, and SCB retains validated transient and regenerative headroom.
+- `LIMP_HOME`: Degraded operation only where the fault analysis and remaining source capability permit it; no fixed 50 kW limp-home rating is established yet. Isolate a failed source and clamp torque to remaining live limits.
 - `FAULT`: Safety violation. High voltage system disconnected.
 
 ### State Transitions

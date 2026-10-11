@@ -32,7 +32,7 @@
       "duplicate_of": ""
     },
     {
-      "filename": "com.android.chrome_154.0.8037.92-803709221_minAPI32(arm64-v8a)(nodpi)_apkmirror.com(1).apk",
+      "filename": "com.android.chrome_154.0.8037.92-803709221_minAPI32(arm64-v8a)(nodpi)_apkmirror.com (1).apk",
       "package_from_filename": "com.android.chrome",
       "min_api_from_filename": 32,
       "abi_from_filename": "arm64-v8a",
@@ -47,7 +47,7 @@
       "abi_from_filename": "arm64-v8a",
       "size_bytes": 285860122,
       "sha256": "1c93e697d10f6df99ac92d30e4c1107987952f471f5303e811d7c066e4dc5c34",
-      "duplicate_of": "com.android.chrome_154.0.8037.92-803709221_minAPI32(arm64-v8a)(nodpi)_apkmirror.com(1).apk"
+      "duplicate_of": ""
     },
     {
       "filename": "com.android.vending_44.6.15-31_9_PR_716750685-84461519_minAPI31(arm64-v8a,armeabi-v7a,x86,x86_64)(nodpi)_apkmirror.com.apk",
@@ -95,7 +95,7 @@
       "duplicate_of": ""
     },
     {
-      "filename": "com.google.android.apps.automotive.youtube_2.205.951045718-205_minAPI32(nodpi)_apkmirror.com(1).apk",
+      "filename": "com.google.android.apps.automotive.youtube_2.205.951045718-205_minAPI32(nodpi)_apkmirror.com (1).apk",
       "package_from_filename": "com.google.android.apps.automotive.youtube",
       "min_api_from_filename": 32,
       "abi_from_filename": "nodpi",
@@ -110,7 +110,7 @@
       "abi_from_filename": "nodpi",
       "size_bytes": 5219199,
       "sha256": "c193efa98c5e15a21adaea1494e9361e7dd8776320f54166fde0e71a498e6dce",
-      "duplicate_of": "com.google.android.apps.automotive.youtube_2.205.951045718-205_minAPI32(nodpi)_apkmirror.com(1).apk"
+      "duplicate_of": ""
     },
     {
       "filename": "com.google.android.apps.books_5.13.7_RC02.342110688.car_production-107722_minAPI28(nodpi)_apkmirror.com.apk",
@@ -131,7 +131,7 @@
       "duplicate_of": ""
     },
     {
-      "filename": "com.google.android.apps.youtube.music_9.39.22-CAR_RELEASE-93922540_minAPI30(arm64-v8a)(nodpi)_apkmirror.com(1).apk",
+      "filename": "com.google.android.apps.youtube.music_9.39.22-CAR_RELEASE-93922540_minAPI30(arm64-v8a)(nodpi)_apkmirror.com (1).apk",
       "package_from_filename": "com.google.android.apps.youtube.music",
       "min_api_from_filename": 30,
       "abi_from_filename": "arm64-v8a",
@@ -146,7 +146,7 @@
       "abi_from_filename": "arm64-v8a",
       "size_bytes": 27703838,
       "sha256": "5bad3f5c2ea84fae88368d04ac78c24473414b1eaff627721858b737053a285c",
-      "duplicate_of": "com.google.android.apps.youtube.music_9.39.22-CAR_RELEASE-93922540_minAPI30(arm64-v8a)(nodpi)_apkmirror.com(1).apk"
+      "duplicate_of": ""
     },
     {
       "filename": "com.google.android.car.setupwizard_1.5.13262.release-13262_minAPI29(x86_64)(nodpi)_apkmirror.com.apk",

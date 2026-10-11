@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use std::time::{Duration, Instant};
 use std::io::{Read, Write};
 use serialport::SerialPort;
-use tracing::{info, warn, error, debug, Level};
+use tracing::{info, warn, error, Level};
 use tracing_subscriber::FmtSubscriber;
 
 use helios_dds::{Participant, QosProfile, VehicleTelemetry, HELIOS_DOMAIN, TOPIC_TELEMETRY};
@@ -99,7 +99,7 @@ impl ProductionObdBridge {
         info!("Adapter initialized for High-Speed EV CAN Monitoring.");
         
         // Command to start dumping raw CAN frames to UART
-        let port = self.port.as_mut().unwrap();
+        let port = self.port.as_mut().context("Port not open during initialization")?;
         port.write_all(b"ATMA\r")?; // Monitor All
 
         self.state = ObdState::Streaming;
@@ -111,20 +111,32 @@ impl ProductionObdBridge {
         let mut buffer = [0u8; 1024];
         let mut line_buffer = String::new();
         
-        let port = self.port.as_mut().unwrap();
-
         loop {
-            match port.read(&mut buffer) {
+            let read_result = match self.port.as_mut() {
+                Some(port) => port.read(&mut buffer),
+                None => {
+                    error!("Serial port is unavailable while streaming.");
+                    self.state = ObdState::ErrorRecovery;
+                    break;
+                }
+            };
+
+            match read_result {
                 Ok(n) if n > 0 => {
                     line_buffer.push_str(&String::from_utf8_lossy(&buffer[..n]));
-                    
+
+                    let mut frames = Vec::new();
                     while let Some(pos) = line_buffer.find('\r') {
                         let frame = line_buffer[..pos].trim().to_string();
                         line_buffer = line_buffer[pos + 1..].to_string();
-                        
+
                         if !frame.is_empty() && frame != "SEARCHING..." {
-                            self.process_can_frame(&frame);
+                            frames.push(frame);
                         }
+                    }
+
+                    for frame in frames {
+                        self.process_can_frame(&frame);
                     }
                 },
                 Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => {
@@ -146,7 +158,6 @@ impl ProductionObdBridge {
         if frame_hex.len() < 3 { return; }
         
         let can_id_str = &frame_hex[0..3];
-        let payload_str = &frame_hex[3..].replace(' ', ""); // removed spaces earlier with ATS0, but just in case
         
         if let Ok(can_id) = u32::from_str_radix(can_id_str, 16) {
             let mut telemetry = VehicleTelemetry {

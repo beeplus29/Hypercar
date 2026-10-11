@@ -1,0 +1,25 @@
+[package]
+name = "helios-ibeji-sil"
+description = "Hardware-free Ibeji-compatible gRPC provider and registry for HELIOS SIL"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+build = "build.rs"
+
+[dependencies]
+anyhow.workspace = true
+prost.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tokio-stream.workspace = true
+tonic.workspace = true
+tonic-prost.workspace = true
+
+[build-dependencies]
+protoc-bin-vendored = "3.2.0"
+tonic-prost-build.workspace = true
+
+[lints]
+workspace = true

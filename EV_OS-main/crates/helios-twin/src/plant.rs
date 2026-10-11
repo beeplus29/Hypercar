@@ -97,7 +97,12 @@ impl Plant {
         let a = p.aero.high_downforce;
         Self {
             p,
-            s: PlantState { cd_a: a.cd_a as f64, cl_a: a.cl_a as f64, bal: a.balance_front as f64, ..Default::default() },
+            s: PlantState {
+                cd_a: a.cd_a as f64,
+                cl_a: a.cl_a as f64,
+                bal: a.balance_front as f64,
+                ..Default::default()
+            },
             aux: PlantAux::default(),
             motor_tau: p.motor.torque_tau_s as f64,
             brake_tau: 0.030,
@@ -129,7 +134,14 @@ impl Plant {
     }
 
     /// State derivative; also returns auxiliary quantities.
-    fn deriv(&self, s: &PlantState, u: &PlantInputs, ax_prev: f64, ay_prev: f64) -> (PlantState, PlantAux) {
+    fn deriv(
+        &self,
+        s: &PlantState,
+        u: &PlantInputs,
+        steering: &[(f64, f64); 4],
+        ax_prev: f64,
+        ay_prev: f64,
+    ) -> (PlantState, PlantAux) {
         let p = &self.p;
         let m = p.mass_kg as f64;
         let iz = p.yaw_inertia_kgm2 as f64;
@@ -137,7 +149,6 @@ impl Plant {
         let rho = helios_core::consts::RHO_AIR_ISA as f64;
         let mf_p = p.tyre_mf;
         let fz = self.fz(s, ax_prev, ay_prev);
-        let deltas = p.ackermann(u.delta_road as f32).map(|d| d as f64);
         let mut d = PlantState::default();
         let mut aux = PlantAux { fz, ..Default::default() };
         let (mut fxb, mut fyb, mut mz) = (0.0, 0.0, 0.0);
@@ -148,7 +159,7 @@ impl Plant {
             let rr = p.rolling_radius(c) as f64;
             let vxh = s.vx - s.r * yc;
             let vyh = s.vy + s.r * xc;
-            let (sd, cd) = deltas[k].sin_cos();
+            let (sd, cd) = steering[k];
             let vcx = vxh * cd + vyh * sd;
             let vcy = -vxh * sd + vyh * cd;
             let den = vcx.abs().max(V_FLOOR);
@@ -211,10 +222,12 @@ impl Plant {
     pub fn step(&mut self, u: &PlantInputs, h: f64) {
         let (ax, ay) = (self.aux.ax, self.aux.ay);
         let s0 = self.s;
-        let (k1, aux) = self.deriv(&s0, u, ax, ay);
-        let (k2, _) = self.deriv(&s0.axpy(&k1, h / 2.0), u, ax, ay);
-        let (k3, _) = self.deriv(&s0.axpy(&k2, h / 2.0), u, ax, ay);
-        let (k4, _) = self.deriv(&s0.axpy(&k3, h), u, ax, ay);
+        let deltas = self.p.ackermann(u.delta_road as f32);
+        let steering = deltas.map(|delta| (delta as f64).sin_cos());
+        let (k1, aux) = self.deriv(&s0, u, &steering, ax, ay);
+        let (k2, _) = self.deriv(&s0.axpy(&k1, h / 2.0), u, &steering, ax, ay);
+        let (k3, _) = self.deriv(&s0.axpy(&k2, h / 2.0), u, &steering, ax, ay);
+        let (k4, _) = self.deriv(&s0.axpy(&k3, h), u, &steering, ax, ay);
         let mut s = s0;
         let w = |a: f64, b: f64, c: f64, d: f64| (a + 2.0 * b + 2.0 * c + d) / 6.0;
         s.x += h * w(k1.x, k2.x, k3.x, k4.x);
@@ -291,7 +304,8 @@ mod tests {
         let drag = 0.5 * 1.225 * 0.82 * v * v;
         let df = 0.5 * 1.225 * 2.40 * v * v;
         let roll = 0.012 * (m * 9.80665 + df);
-        let m_eff: f64 = m + Corner::ALL.iter().map(|c| 2.9 / (p.rolling_radius(*c) as f64).powi(2)).sum::<f64>();
+        let m_eff: f64 =
+            m + Corner::ALL.iter().map(|c| 2.9 / (p.rolling_radius(*c) as f64).powi(2)).sum::<f64>();
         let a_expected = -(drag + roll) / m_eff;
         assert!((pl.aux.ax - a_expected).abs() < 0.01, "ax {} expected {}", pl.aux.ax, a_expected);
     }
@@ -303,7 +317,12 @@ mod tests {
         let v = 5.0;
         let delta = 0.1;
         pl.s.vx = v;
-        let mut u = PlantInputs { delta_road: delta, aero_mode: AeroMode::HighDownforce, mu_scale: 1.0, ..Default::default() };
+        let mut u = PlantInputs {
+            delta_road: delta,
+            aero_mode: AeroMode::HighDownforce,
+            mu_scale: 1.0,
+            ..Default::default()
+        };
         for _ in 0..40_000 {
             // simple speed hold on the rear motors
             let e = v - pl.s.vx;

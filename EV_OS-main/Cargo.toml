@@ -7,10 +7,13 @@ members = [
     "crates/helios-energy",
     "crates/helios-can",
     "crates/helios-twin",
+    "crates/helios-ibeji-sil",
     "crates/helios-dds-sys",
     "crates/helios-dds",
     "crates/helios-vhal-server",
     "crates/helios-hil", "crates/helios-obd", "crates/helios-voice",
+    "crates/helios-dev-console",
+    "crates/helios-zephyr-control-ffi",
 ]
 # The Zonal Controller firmware is a separate workspace member-less package: it only builds
 # for thumbv7em-none-eabihf and needs its own linker script / profile.
@@ -23,6 +26,7 @@ default-members = [
     "crates/helios-energy",
     "crates/helios-can",
     "crates/helios-twin",
+    "crates/helios-ibeji-sil",
     "crates/helios-hil",
 ]
 
@@ -42,8 +46,11 @@ helios-vdc = { path = "crates/helios-vdc", default-features = false }
 helios-energy = { path = "crates/helios-energy", default-features = false }
 helios-can = { path = "crates/helios-can", default-features = false }
 helios-twin = { path = "crates/helios-twin" }
+helios-ibeji-sil = { path = "crates/helios-ibeji-sil" }
 helios-dds-sys = { path = "crates/helios-dds-sys" }
 helios-dds = { path = "crates/helios-dds" }
+rustecal = { version = "0.1.8", default-features = false, features = ["pubsub"] }
+rustecal-types-serde = "0.1.5"
 # no_std-safe
 libm = "0.2.16"
 heapless = "0.9.3"
@@ -56,7 +63,7 @@ serde_json = "1.0.151"
 toml = "1.1.6"
 csv = "1.4.0"
 tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "signal"] }
-tokio-stream = { version = "0.1.19", features = ["sync"] }
+tokio-stream = { version = "0.1.19", features = ["net", "sync"] }
 futures = "0.3.34"
 tonic = "0.14.6"
 tonic-prost = "0.14.6"
@@ -83,8 +90,25 @@ cast_possible_truncation = "allow"
 opt-level = 3
 lto = "thin"
 codegen-units = 1
-debug = 1
+debug = 0
+strip = "symbols"
 overflow-checks = true   # keep arithmetic overflow checks in release for control code
+
+# Faster optimized iteration for builds where thin-LTO link time dominates.
+# Use `cargo build --profile release-fast` for a quick optimized executable.
+[profile.release-fast]
+inherits = "release"
+lto = false
+codegen-units = 16
+
+[profile.firmware]
+inherits = "release"
+opt-level = "s"
+lto = false
+codegen-units = 1
+debug = 0
+strip = false
+panic = "abort"
 
 [profile.dev]
 opt-level = 1            # the twin runs 4 kHz RK4; unoptimised dev builds are too slow for tests

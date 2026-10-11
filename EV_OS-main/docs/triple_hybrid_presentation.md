@@ -1,12 +1,16 @@
 # Hypercar Triple-Hybrid HV Topology & Development Phases
 
+> **Engineering concept only:** Ratings and vehicle-performance figures below are provisional allocations or targets, not selected hardware ratings or validated vehicle results. See [the requirements baseline](triple_hybrid_spec.md).
+
 ---
 
 ## Slide 1: Triple-Hybrid HV Topology Overview
 ### The Ultimate Powertrain
-- **Hydrogen Fuel Cell (HFC):** 400V (boosted to 800V DC Link). 150kW continuous primary baseline power (6.5 kg H2 capacity) for sustained operation and range extension.
-- **High-Energy Battery (HEB):** 800V, 110kWh bulk energy storage for cruising and sustained power beyond the HFC output; the >500-mile range remains a vehicle target.
-- **Supercapacitor Bank (SCB):** 800V, 2.0kWh. Zero-lag transient response for hard acceleration and 500kW regen braking; the <2 second 0-60 mph target remains unchanged.
+- **Hydrogen Fuel Cell (HFC):** 150 kW net continuous output allocation at the DC link; 6.5 kg H2 inventory target. Stack ramp/efficiency maps are not yet integrated.
+- **High-Energy Battery (HEB):** Current model is 200s3p, ~100 kWh nominal, 800 V class. It is not a selected hardware pack.
+- **Supercapacitor Bank (SCB):** 2.0 kWh nominal; 500 kW for 5 s provisional bidirectional allocation. No SCB model/dispatch is implemented.
+- **Traction motors:** Two rear Helix SPX242-175D and two front SPX242-94; datasheet motor-shaft totals are 1.8 MW peak (10 s) and 1.478 MW continuous under stated test conditions. The current twin still uses a generic motor model pending gearbox and inverter-channel details.
+- **Vehicle targets:** >500-mile range and <2.0 s 0-60 mph remain targets. The twin does not validate range or a 0-60 mph run.
 
 ---
 
@@ -23,15 +27,15 @@
 ### Addressing Hypercar Trade-offs
 - **Thermal Management:** HFC offloads sustained current draw from the HEB, reducing pack temperatures during track sessions.
 - **Battery Degradation:** SCB absorbs high-C regen spikes, extending the life of the HEB.
-- **Weight vs Range:** 6.5kg of H2 provides ~104kWh equivalent energy at a fraction of the weight of adding 104kWh of battery cells.
+- **Weight vs Range:** 6.5 kg H2 represents about 216 kWh chemical LHV energy; delivered electricity depends on net fuel-cell efficiency, balance-of-plant load, and usable-fuel reserve. Range remains unvalidated.
 
 ---
 
 ## Slide 4: Power Allocation Strategy
 ### Smart Energy Management System (EMS)
-- **Acceleration:** HFC supplies its continuous baseline, SCB handles short high-current bursts, and HEB supplies sustained demand and balances the remaining load.
-- **Braking:** SCB handles primary 500kW regen spike. Excess flows to HEB (max 150kW).
-- **Cruising:** HFC runs at optimal efficiency curve (~50kW) to maintain HEB state of charge. SCB held at 80% for instant overtake power.
+- **Acceleration:** HFC supplies a slew-limited continuous baseline, SCB handles validated short bursts, and HEB supplies the remaining demand within live source limits.
+- **Braking:** Allocate regen within live SCB/HEB charge limits; friction brakes cover the remainder. Twin regen acceptance limits still need explicit acceptance tests.
+- **Cruising:** HFC operating point must come from the selected supplier's efficiency/ramp map. Preserve SCB headroom for both transients and regen rather than assuming a fixed 80% SOC target.
 
 *These are target powertrain strategies; current Rust energy and twin code model the battery but do not yet implement HFC or SCB dispatch.*
 
@@ -39,7 +43,7 @@
 
 ## Slide 5: Recommended Development Phases
 ### Phase 1: Software & HIL Simulation
-- Finalize EV_OS energy management state machine logic.
+- Implement and test HFC-primary dispatch, battery buffering, SCB transient/regen limits, energy accounting, and source-fault handling.
 - Hardware-in-the-Loop (HIL) simulation of the 800V DC link with simulated SCB, HEB, and HFC models.
 - Validate control loop frequencies (SCB @ 1ms, HEB @ 10ms).
 

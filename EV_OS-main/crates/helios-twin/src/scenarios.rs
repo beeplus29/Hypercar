@@ -134,7 +134,11 @@ pub fn launch(layout: PowertrainLayout) -> anyhow::Result<ScenarioResult> {
     let target = if layout == PowertrainLayout::Quad { 2.2 } else { 3.2 };
     c.check("0-100 km/h", t100 <= target, format!("{t100:.2} s (target <= {target} s)"));
     c.check("TC slip bounded", slip_peak < 0.25, format!("peak steady-state slip {slip_peak:.3}"));
-    c.check("battery power <= SOP", p_peak <= 1.65e6, format!("{:.0} kW", p_peak / 1e3));
+    c.check(
+        "battery-side power guardrail",
+        p_peak <= 1.65e6,
+        format!("{:.0} kW (simulation guardrail <= 1650 kW)", p_peak / 1e3),
+    );
     Ok(c.done(sim))
 }
 
@@ -156,9 +160,7 @@ pub fn braking(layout: PowertrainLayout) -> anyhow::Result<ScenarioResult> {
     let mut a_peak: f64 = 0.0;
     let mut abs_seen = false;
     let mut airbrake = false;
-    sim.run_until(15.0, |s| {
-        s.speed() < 0.3
-    });
+    sim.run_until(15.0, |s| s.speed() < 0.3);
     for smp in sim.log.iter().filter(|s| s.t > t0) {
         a_peak = a_peak.max(-smp.ax);
         airbrake |= smp.aero == 2;
@@ -289,7 +291,13 @@ pub fn skidpad(layout: PowertrainLayout) -> anyhow::Result<ScenarioResult> {
     c.check(
         "lateral grip >= 85 % of tyre capacity",
         ratio >= 0.85,
-        format!("{:.2} g of {:.2} g capacity ({:.0} %) at {:.0} km/h", ay_best / 9.80665, ay_cap / 9.80665, ratio * 100.0, v_best * 3.6),
+        format!(
+            "{:.2} g of {:.2} g capacity ({:.0} %) at {:.0} km/h",
+            ay_best / 9.80665,
+            ay_cap / 9.80665,
+            ratio * 100.0,
+            v_best * 3.6
+        ),
     );
     Ok(c.done(sim))
 }
@@ -394,7 +402,11 @@ pub fn thermal_cycles(layout: PowertrainLayout) -> anyhow::Result<ScenarioResult
     c.metric("soc_est_error_pct", (sim.ekf.soc() - sim.battery.s.soc) as f64 * 100.0);
     c.metric("energy_out_kwh", sim.e_out_j / 3.6e6);
     c.metric("energy_regen_kwh", sim.e_regen_j / 3.6e6);
-    c.check("cell temperature < 60 C", (sim.battery.s.t_cell_c as f64) < 60.0, format!("{:.1} C", sim.battery.s.t_cell_c));
+    c.check(
+        "cell temperature < 60 C",
+        (sim.battery.s.t_cell_c as f64) < 60.0,
+        format!("{:.1} C", sim.battery.s.t_cell_c),
+    );
     c.check("winding < 180 C", t_wind_max < 180.0, format!("{t_wind_max:.0} C"));
     c.check(
         "SOC estimator error < 2 %",
@@ -433,9 +445,14 @@ pub fn fault_motor_loss(layout: PowertrainLayout) -> anyhow::Result<ScenarioResu
     c.metric("heading_change_deg", (sim.plant.s.psi - psi0).to_degrees());
     c.metric("final_state", sim.vsm.state() as u8 as f64);
     c.metric("final_mode", sim.vsm_out.drive_mode as u8 as f64);
-    let expected = if layout == PowertrainLayout::Quad { VehicleState::Drive } else { VehicleState::SafeStop };
-    c.check("state reaction", sim.vsm.state() == expected || sim.vsm.state() == VehicleState::HvShutdown && expected == VehicleState::SafeStop,
-        format!("{:?} (expected {:?})", sim.vsm.state(), expected));
+    let expected =
+        if layout == PowertrainLayout::Quad { VehicleState::Drive } else { VehicleState::SafeStop };
+    c.check(
+        "state reaction",
+        sim.vsm.state() == expected
+            || sim.vsm.state() == VehicleState::HvShutdown && expected == VehicleState::SafeStop,
+        format!("{:?} (expected {:?})", sim.vsm.state(), expected),
+    );
     c.check("lateral drift < 0.5 m in 2 s", dy < 0.5, format!("{dy:.3} m"));
     c.check("yaw rate < 2 deg/s", r_max.to_degrees() < 2.0, format!("{:.2} deg/s", r_max.to_degrees()));
     Ok(c.done(sim))
@@ -474,7 +491,9 @@ pub fn fault_hvil(layout: PowertrainLayout) -> anyhow::Result<ScenarioResult> {
     let st = sim.vsm.state();
     c.check(
         "restart inhibited while HVIL open",
-        !sim.vsm_out.contactors.main_pos && !sim.vsm_out.contactors.precharge && st != VehicleState::Precharge,
+        !sim.vsm_out.contactors.main_pos
+            && !sim.vsm_out.contactors.precharge
+            && st != VehicleState::Precharge,
         format!("{st:?}, contactors open"),
     );
     let _ = Gear::Park;
