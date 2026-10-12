@@ -1,4 +1,0 @@
-[package]
-name = "helios-hil"
-version.workspace = true
-edition.workspace = true

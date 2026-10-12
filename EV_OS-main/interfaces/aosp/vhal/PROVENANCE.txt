@@ -1,1 +1,0 @@
-Source: platform/hardware/interfaces android17-release @ 0162af698935100a590b7359581ac8b1b80693e5 (2026-05-14), automotive/vehicle/aidl/impl/current/{proto,grpc/proto}. Apache-2.0.
