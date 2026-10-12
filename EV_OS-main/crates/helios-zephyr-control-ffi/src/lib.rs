@@ -205,6 +205,7 @@ fn make_vsm_input(i: &ControlInput) -> VsmInputs {
         steering_sensor_fault: i.steering_sensor_fault != 0,
         ground_speed_invalid: i.ground_speed_invalid != 0,
         service_reset: i.service_reset != 0,
+        advisory_firewall_trip: false,
     }
 }
 

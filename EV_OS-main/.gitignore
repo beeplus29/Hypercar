@@ -15,3 +15,5 @@ local.properties
 
 # User-provided AAOS APK binaries (tracked via manifest, not Git)
 aaos/apks/*.apk
+.venv/
+.west/

@@ -82,6 +82,8 @@ faults! {
     SteeringSensorFault = 22 => Degrade, false;
     /// Ground-speed (optical) sensor invalid; wheel-speed fallback in use.
     GroundSpeedInvalid = 23 => Degrade, false;
+    /// Central compute (Thor QM) advisory command violated safety envelope or timed out.
+    AdvisoryFirewallTrip = 24 => Degrade, false;
 }
 
 /// Bit set of active faults.

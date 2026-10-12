@@ -249,6 +249,40 @@ macro_rules! inv_status {
 /// The HELIOS communication matrix.
 pub static MATRIX: &[Message] = &[
     Message {
+        name: "HPC_AdvisoryCmd",
+        id: 0x0E0,
+        bus: Bus::Chassis,
+        len: 16,
+        period_ms: 10,
+        sender: "HPC",
+        receivers: "VCU",
+        data_id: 0x00E0,
+        signals: &[
+            s("AdvTrq_FL", 3, Kind::I16, 0.25, 0.0, "Nm"),
+            s("AdvTrq_FR", 5, Kind::I16, 0.25, 0.0, "Nm"),
+            s("AdvTrq_RL", 7, Kind::I16, 0.25, 0.0, "Nm"),
+            s("AdvTrq_RR", 9, Kind::I16, 0.25, 0.0, "Nm"),
+            s("AdvSteerReq", 11, Kind::I16, 0.0001, 0.0, "rad"),
+            s("AdvFlags", 13, Kind::U8, 1.0, 0.0, ""),
+        ],
+    },
+    Message {
+        name: "VCU_SupervisorStatus",
+        id: 0x0E1,
+        bus: Bus::Chassis,
+        len: 8,
+        period_ms: 10,
+        sender: "VCU",
+        receivers: "HPC",
+        data_id: 0x00E1,
+        signals: &[
+            s("FirewallState", 3, Kind::U8, 1.0, 0.0, ""),
+            s("ViolationBits", 4, Kind::U8, 1.0, 0.0, ""),
+            s("ClampDeltaMax", 5, Kind::U16, 0.25, 0.0, "Nm"),
+            s("AdvisoryActive", 7, Kind::U8, 1.0, 0.0, ""),
+        ],
+    },
+    Message {
         name: "CCU_Heartbeat",
         id: 0x0F0,
         bus: Bus::Chassis,

@@ -35,36 +35,47 @@ The following are candidates, not confirmed selections. Different product altern
 
 **Amprius selection status:** SA08 is the only supplied Amprius cell with a public seller current rating found in this review, and that rating does not substantiate the modeled battery-only launch peak or the 550 kg pack target. Amprius lists other high-power cell models, but their detailed cell ratings are not publicly established here. The next valid selection step is to obtain those datasheets and require a pack-level proposal that satisfies the vehicle's defined DC power-vs-time profile, usable energy, maximum pack voltage, thermal envelope, and mass target. Until then, the Amprius model is **unselected**.
 
-## 1. Central Compute, Networking, & Infotainment
-* **Central HPC (The Brain):** 
-  * *Hardware:* NVIDIA DRIVE Thor (or Jetson AGX Orin)
-  * *Role:* Runs QNX/Linux for ADAS sensor fusion, high-level math, and the Android Automotive OS (AAOS) infotainment.
-* **Central Vehicle Gateway:**
-  * *Hardware:* **NXP GoldBox-3 (S32G3)**
-  * *Role:* The central Ethernet and CAN router. It securely routes Cyclone DDS traffic between the NVIDIA Thor and the rest of the car, acting as the ultimate Service-Oriented Gateway.
+## 1. Central Compute, Networking, & Infotainment (3-Tier Safety Co-Processor Architecture)
+
+### Tier 1: High-Compute Advisory & Perception (QM / Non-ASIL)
+* **Central HPC (The AI Brain):**
+  * *Hardware:* NVIDIA Jetson AGX Thor Developer Kit (or Jetson AGX Orin)
+  * *Compliance Level:* **QM (Quality Management / Non-ASIL)**. Commercial developer kits lack hardware lockstep safety cores and deterministic fault-recovery mechanisms mandated by ISO 26262 for direct actuator authority.
+  * *Sandboxed Role:* Exclusively advisory. Runs perception, LiDAR/camera sensor fusion, neural trajectory generation, and Android Automotive OS (AAOS) infotainment (`helios-vhal-server`). Emits proposed trajectories/torques (`HPC_AdvisoryCmd`) over Cyclone DDS / Automotive Ethernet to the ASIL firewall. It is **never** permitted to drive physical actuators directly.
+  * *Physical Hardening Requirements for Vehicle Installation:*
+    1. **Power Conditioning (ISO 7637-2 / ISO 16750-2):** Isolated DC-DC voltage conditioner protecting against cranking brownouts (~6V) and inductive load dumps (up to 40V–100V).
+    2. **Thermal & Ingress Protection:** Enclosed in an IP67 CNC-machined aluminum chassis coupled to a dedicated liquid-cooling cold plate plumbed into the auxiliary low-temperature loop.
+    3. **Shock & Vibration Isolation:** Chassis-mounted via silicone/wire-rope vibration isolators with ruggedized Amphenol/M12 locking connectors to prevent track vibration solder fatigue. (Alternatively, utilize a pre-built rugged edge mission computer from Neousys/Systel).
+
+### Tier 2: Vehicle Gateway & Safety Supervisor (ISO 26262 ASIL D)
+* **Central Gateway & Safety Firewall:**
+  * *Hardware:* **NXP GoldBox-3 (S32G3)** (Lockstep Arm Cortex-M7 safety cores)
+  * *Compliance Level:* **ISO 26262 ASIL D**
+  * *Role:* Acts as the automotive safety firewall between the non-ASIL Thor and the physical actuators. It executes `helios-vdc::supervisor` and `helios-vsm`:
+    1. **Brake-Throttle Override (BTO):** Vetoes all advisory propulsion to 0 Nm if the driver touches the brake pedal.
+    2. **Slew-Rate Limiting:** Enforces $\le 50$ Nm/ms torque delta limits to prevent driveline shock.
+    3. **Tire Adhesion Ceiling:** Clamps requested differential yaw moments to the friction circle ($M_z \le 0.85 \cdot \mu \cdot F_z \cdot \frac{\text{track}}{2}$).
+    4. **Liveness & E2E Watchdog:** Monitors packet age ($< 50$ ms) and AUTOSAR E2E Profile 5 CRC16/counters; trips to `AdvisoryFirewallTrip` on failure.
+
+### Connectivity & Cloud Telemetry
 * **Cloud Telemetry & Connectivity:**
   * *Hardware:* **NXP OrangeBox**
   * *Role:* Wireless domain controller handling 5G cloud telemetry (for Eclipse Ibeji digital twins), Wi-Fi 6, and Ultra-Wideband (UWB) for smartphone digital keyless entry.
 
-## 2. Powertrain & Zonal Control (Two Paths)
+## 2. Powertrain & Execution Control (Tier 3)
 
-*Path A: Custom Rust route (concept only; not safety-qualified)*
-* **Powertrain Domain Controller / Zonal Routers:**
-  * *Hardware:* **NXP GreenBox-3 (S32E)** and/or **NXP S32K3** microcontrollers.
-  * *Role:* Candidate platform for custom `#![no_std]` Rust prototypes. No ASIL-D capability or certification is established by this repository.
-
-*Path B: The Proven Motorsport Route*
+### Tier 3: Hard Real-Time Execution Controller (Turnkey Motorsport ECU)
 * **Powertrain Master Controller:**
-  * *Hardware:* **AEM VCU300**
-  * *Role:* Candidate production-oriented controller. AEM states the VCU300 can manage up to four motor/inverter systems and three independent CAN networks. Verify the supported-application list and the selected system's startup/shutdown, BMS, and fault requirements; it is not assumed to replace an independent safety assessment.
+  * *Hardware:* **AEM VCU 300 (Part 30-8100)**
+  * *Why VCU 300 over NXP GreenBox 3:*
+    * **Development Speed:** The VCU 300 features turnkey precharge sequencing, contactor state machines, and APPS dual-redundant pedal decoding configured via the graphical **AEMcal** suite. Replacing it with an NXP GreenBox 3 would require writing thousands of lines of bare-metal C/AUTOSAR drivers, memory-mapped registers, and low-level contactor weld-detection logic from scratch.
+    * **Direct Inverter Integration:** Native CAN profiles for multi-inverter setups (Helix CTI-4 SiC channels) and high-voltage BMS communications.
+    * **Role:** Receives validated, supervisor-sanitized torque requests via CAN FD and executes hard real-time motor phase currents, contactor interlocks, and thermal management.
 
-*Path C: The Ultimate Hybrid Supervisory Architecture (Using Both)*
-* **Vehicle Dynamics Engine (Supervisory):**
-  * *Hardware:* **NXP GreenBox-3 (S32E)** running custom Rust (`helios-vdc`).
-  * *Role:* Calculates hyper-advanced, 1000Hz torque vectoring matrices, yaw-rate tracking, and Active Downforce (AGEDS) logic. It computes exactly how much torque each wheel needs to maximize grip, and sends these targets to the AEM VCU300.
-* **High-Voltage Execution Controller:**
-  * *Hardware:* **AEM VCU300**
-  * *Role:* Potentially manages HV sequencing, contactor states, and inverter integration subject to the selected VCU's documented capabilities, supported components, and validated calibration. Do not call it a safety layer until the complete safety concept and implementation are assessed.
+*Path Alternatives & Evaluation:*
+* **Path A (Custom Rust Zonal Scaffold):** NXP S32K3 zonal microcontrollers running `#![no_std]` `helios-vsm` and `firmware/zephyr-control`.
+* **Path B (Turnkey Motorsport Architecture - Recommended):** AEM VCU 300 as the dedicated Master ECU, receiving sanitized torque targets from the NXP GoldBox supervisor firewall.
+* **Path C (Hybrid Supervisory):** NXP GoldBox S32G3 running `helios-vdc::supervisor` for 1 kHz safety envelope enforcement, dispatching sanitized CAN FD frames down to the AEM VCU 300.
 
 ## 3. High-Voltage (HV) Powertrain Modules
 * **Traction Inverters (quantity TBD):**

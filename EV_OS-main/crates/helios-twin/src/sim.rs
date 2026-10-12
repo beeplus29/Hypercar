@@ -252,6 +252,7 @@ impl Sim {
             steering_sensor_fault: false,
             ground_speed_invalid: false,
             service_reset: false,
+            advisory_firewall_trip: false,
         };
         let vo = self.vsm.step(&vin);
         let vdc_in = VdcInputs {

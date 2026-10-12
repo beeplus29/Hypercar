@@ -179,6 +179,7 @@ pub struct VsmInputs {
     pub steering_sensor_fault: bool,
     pub ground_speed_invalid: bool,
     pub service_reset: bool,
+    pub advisory_firewall_trip: bool,
 }
 
 impl Default for VsmInputs {
@@ -209,6 +210,7 @@ impl Default for VsmInputs {
             steering_sensor_fault: false,
             ground_speed_invalid: false,
             service_reset: false,
+            advisory_firewall_trip: false,
         }
     }
 }
@@ -374,6 +376,7 @@ impl Vsm {
         f.set(Flt::ThermalDerate, i.thermal_derate);
         f.set(Flt::SteeringSensorFault, i.steering_sensor_fault);
         f.set(Flt::GroundSpeedInvalid, i.ground_speed_invalid);
+        f.set(Flt::AdvisoryFirewallTrip, i.advisory_firewall_trip);
         self.active = f;
     }
 

@@ -17,6 +17,12 @@
 
 pub mod aero;
 pub mod alloc;
+pub mod supervisor;
+
+pub use supervisor::{
+    AdvisoryCommand, FirewallState, SafetySupervisor, SupervisorConfig, SupervisorInputs, SupervisorOutputs,
+    SupervisorViolations,
+};
 
 use helios_core::consts::G;
 use helios_core::math::{Lpf1, Pi, abs, atan2, clamp, cos, powf, sat_sym, sin, sqrt};

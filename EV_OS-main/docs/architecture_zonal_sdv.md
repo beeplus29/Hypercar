@@ -4,32 +4,36 @@
 
 The HELIOS hypercar abandons the traditional, monolithic ECU structure (with a single massive Vehicle Control Unit) in favor of a **Zonal Architecture** connected via a high-speed Automotive Ethernet backbone. 
 
-### 1.1 Central High-Performance Computer (HPC)
-**Hardware:** NVIDIA Thor or Jetson AGX Orin
-**OS:** QNX Neutrino or Automotive Grade Linux (AGL)
-**Role:** Intended central compute role; hardware and OS selection are not yet frozen.
+### 1.1 Tier 1: Central High-Performance Computer (HPC - Advisory / QM)
+**Hardware:** NVIDIA Jetson AGX Thor Developer Kit (or Jetson AGX Orin)
+**Safety Level:** Quality Management (QM / Non-ASIL under ISO 26262)
+**OS:** Linux (JetPack / Ubuntu) or QNX Neutrino
+**Role:** High-compute perception, vision sensor fusion, neural trajectory generation, and infotainment bridging.
+**Key constraint:** The Jetson Thor Developer Kit lacks hardware lockstep safety cores and deterministic fault-recovery mechanisms. Consequently, it is **strictly sandboxed in an advisory role**. It does not possess direct authority over vehicle actuators.
 **Planned software components:**
-- `helios-vdc`: Vehicle Dynamics Control (Torque vectoring, Yaw-rate, aero strategy).
-- `helios-energy`: Battery ECM, SOC estimation, and battery/motor thermal models. Fuel-cell and supercapacitor dispatch remain planned work.
 - `helios-vhal-server`: The AAOS infotainment bridge.
+- `HPC_AdvisoryCmd`: High-level proposed driving path and torque bias (`crates/helios-can` ID `0x0E0`) emitted over Automotive Ethernet / Cyclone DDS to the ASIL firewall.
+- `helios-energy`: High-level host energy optimization and digital twin telemetry.
 
-The digital-twin simulation runs VSM/VDC steps at 1 kHz. There is not yet an HPC application that acquires vehicle sensors or publishes actuator torque commands.
+### 1.2 Tier 2: Central Vehicle Gateway & Safety Supervisor (ISO 26262 ASIL D)
+**Hardware:** NXP GoldBox-3 (S32G3) with lockstep Arm Cortex-M7 safety cores
+**Role:** Automotive Safety Firewall and Service-Oriented Gateway.
+**Integration & Safety Invariants:**
+The S32G3 acts as the deterministic firewall between the non-ASIL Central HPC and the vehicle actuators. It executes the `helios-vdc::supervisor` safety engine and `helios-vsm`:
+1. **Brake Override Veto:** Immediate suppression of autonomous forward propulsion if the driver depresses the brake pedal.
+2. **Torque Slew-Rate Limiting:** Enforces $\le 50$ Nm/ms step clamping on advisory requests to protect mechanical half-shafts and inverter power stages.
+3. **Lateral Stability & Friction Circle Clamping:** Attenuates differential torque demands if the requested yaw moment exceeds available tire adhesion ($M_z > 0.85 \cdot \mu \cdot F_z \cdot \frac{\text{track}}{2}$).
+4. **Heartbeat & E2E Protection:** Validates AUTOSAR Profile 5 CRC16 checksums and rolling alive counters; trips to `AdvisoryFirewallTrip` (bit 24) on timeout (> 50 ms).
 
-### 1.2 Vehicle Control Runtime and Zonal Controllers
-**Selected HPC/control platform family:** NXP S32G GoldBox/GreenBox; exact board and SoC derivative are not specified.
-**Zonal MCU candidate:** 3x NXP S32K3 (Lockstep ARM Cortex-M7).
-**RTOS:** Zephyr integration has started in `firmware/zephyr-control`, initially on `native_sim`. The checked-out Zephyr source does not provide a GoldBox/GreenBox S32G target, BSP, or peripheral drivers.
-**Role:** The Zephyr app calls existing Rust `#![no_std]` VSM and VDC code through a narrow C ABI. It is a safe-output scaffold only: it deliberately rejects placeholder sensor data and is not connected to sensors, CAN, contactors, or inverters.
-**Planned software components:**
-- `helios-vsm`: Vehicle State Machine (HV contactors, HVIL).
-- `helios-vdc`: vehicle dynamics control and torque allocation.
-- `helios-can`: localized CAN FD networks for legacy sensors.
-- `helios-energy`: no_std energy algorithms are available, but no validated target BMS data interface is defined; the host energy model is not yet called by the Zephyr app.
-- Board-specific firmware, target BSP, sensor/actuator acquisition, CAN transport, and hardware safety interfaces remain unimplemented.
+### 1.3 Tier 3: Powertrain Master Controller & Zonal Execution
+**Hardware:** **AEM VCU 300** (Master Powertrain ECU) + Optional NXP S32K3 Zonal MCUs
+**Role:** Hard real-time physical actuator execution.
+**Turnkey Advantages over NXP GreenBox 3:**
+- The AEM VCU 300 provides turnkey high-voltage precharge sequencing, contactor state machines, dual-channel accelerator pedal plausibility (APPS), and native multi-inverter CAN support configured via the **AEMcal** graphical interface.
+- It receives validated, supervisor-sanitized torque frames (`VCU_TrqCmd_F`, `VCU_TrqCmd_R`) from the NXP GoldBox over CAN FD and drives the Helix CTI-4 SiC inverters.
+- Zephyr integration in `firmware/zephyr-control` provides the safe-output scaffold for S32K3 zonal nodes.
 
-The Zephyr control facade applies 5 ms heartbeat-stale and 9 ms heartbeat-lost thresholds in its VSM configuration; due to the VSM's strict greater-than comparison, a 10 ms heartbeat age triggers the lost-heartbeat reaction. Its task-watchdog default is 5 ms (configurable up to 9 ms), with a 10 ms hardware-watchdog fallback when the board exposes a watchdog device. These are software integration settings, not validated fault-tolerant-time intervals or an ASIL claim. Hardware watchdog/reset behavior and independent de-energize-to-safe actuator paths must be validated on the exact board.
-
-### 1.3 Low Voltage (LV) Power Management
+### 1.4 Low Voltage (LV) Power Management
 **Hardware:** Infinitybox INFIPM1Z (Intelligent Power Management Kit)
 **Role:** Body Control & 12V Load Distribution
 **Integration:**
