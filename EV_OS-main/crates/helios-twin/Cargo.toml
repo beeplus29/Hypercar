@@ -1,0 +1,53 @@
+[package]
+name = "helios-twin"
+description = "HELIOS digital twin: planar twin-track vehicle plant with MF tyres, HV circuit, battery thermal; runs the real VSM/VDC/energy code in the loop"
+default-run = "helios-twin"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+helios-core = { workspace = true, features = ["std"] }
+helios-vsm.workspace = true
+helios-vdc.workspace = true
+helios-energy.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+csv.workspace = true
+helios-dds = { workspace = true, optional = true }
+helios-ibeji-sil = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+tokio-stream = { workspace = true, optional = true }
+tonic = { workspace = true, optional = true }
+rustecal = { workspace = true, optional = true }
+rustecal-types-serde = { workspace = true, optional = true }
+
+[features]
+sil-dds = ["dep:helios-dds"]
+sil-ibeji = ["dep:helios-ibeji-sil", "dep:tokio", "dep:tokio-stream", "dep:tonic"]
+sil-ecal = ["dep:rustecal", "dep:rustecal-types-serde"]
+
+[[bin]]
+name = "helios-twin"
+path = "src/bin/helios-twin.rs"
+
+[[bin]]
+name = "helios-twin-dds"
+path = "src/bin/helios-twin-dds.rs"
+required-features = ["sil-dds"]
+
+[[bin]]
+name = "helios-twin-ecal"
+path = "src/bin/helios-twin-ecal.rs"
+required-features = ["sil-ecal"]
+
+[[bin]]
+name = "helios-twin-ibeji"
+path = "src/bin/helios-twin-ibeji.rs"
+required-features = ["sil-ibeji"]
+
+[lints]
+workspace = true

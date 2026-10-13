@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  HELIOS Cyclone DDS 0.10.5 profile: loopback only (CI, SIL, single-host twin).
+  export CYCLONEDDS_URI=file://$PWD/config/dds/helios_loopback.xml
+  Vehicle profile (helios_vehicle.xml) binds the S32G3 automotive Ethernet VLAN.
+-->
+<CycloneDDS xmlns="https://cdds.io/config"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/releases/0.10.x/etc/cyclonedds.xsd">
+  <Domain id="any">
+    <General>
+      <Interfaces>
+        <NetworkInterface name="lo" multicast="true" priority="default"/>
+      </Interfaces>
+      <AllowMulticast>true</AllowMulticast>
+      <MaxMessageSize>65500B</MaxMessageSize>
+    </General>
+    <Discovery>
+      <ParticipantIndex>auto</ParticipantIndex>
+      <MaxAutoParticipantIndex>64</MaxAutoParticipantIndex>
+    </Discovery>
+    <Tracing>
+      <Verbosity>none</Verbosity>
+    </Tracing>
+  </Domain>
+</CycloneDDS>

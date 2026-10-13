@@ -1,0 +1,19 @@
+/target
+/.deps
+/out
+*.csv.tmp
+__pycache__/
+/build
+.DS_Store
+.idea/
+.vscode/
+**/.gradle/
+local.properties
+/android/build/
+/android/app/build/
+/Apks/
+
+# User-provided AAOS APK binaries (tracked via manifest, not Git)
+aaos/apks/*.apk
+.venv/
+.west/

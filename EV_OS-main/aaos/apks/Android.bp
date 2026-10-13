@@ -1,0 +1,167 @@
+// HELIOS AAOS Prebuilt Application Imports
+// Automatically generated Soong Android.bp module for prebuilt APK integration into AAOS product build.
+
+android_app_import {
+    name: "HeliosMyRadar",
+    apk: "com.acmeaom.android.myradar_8.54.0-30541_minAPI29(arm64-v8a,armeabi-v7a,x86_64)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosAmazonVideo",
+    apk: "com.amazon.avod.thirdpartyclient_3.0.464.2487-464002487_minAPI28(arm64-v8a)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosAmazonMusicAuto",
+    apk: "com.amazon.mp3.automotiveOS_25.19.0-725190012_minAPI29(x86_64)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosChrome",
+    apk: "com.android.chrome_154.0.8037.92-803709221_minAPI32(arm64-v8a)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosFermataAuto",
+    apk: "me.aap.fermata.auto.dear.google.why_2.0.0-264_minAPI29(armeabi-v7a)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosTuneIn",
+    apk: "tunein.player_42.3-291057_minAPI23(arm64-v8a,armeabi-v7a,x86,x86_64)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosAnghami",
+    apk: "com.anghami_7.0.53-7000532_minAPI28(arm64-v8a,armeabi-v7a,x86,x86_64)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosAutomotiveInputMethod",
+    apk: "com.google.android.apps.automotive.inputmethod_26.34.00.x86_64-24259332_minAPI30(x86_64)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosYouTubeAuto",
+    apk: "com.google.android.apps.automotive.youtube_2.205.951045718-205_minAPI32(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosCarSetupWizard",
+    apk: "com.google.android.car.setupwizard_1.5.13262.release-13262_minAPI29(x86_64)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    privileged: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosGoogleMaps",
+    apk: "com.google.android.apps.maps_26.09.140004.E-1068786182_minAPI30(arm64-v8a,x86_64)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosParkWhiz",
+    apk: "com.parkwhiz.driverApp_16.7.2-22063172_minAPI29(arm64-v8a,armeabi-v7a,x86,x86_64)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosGoogleBooksCar",
+    apk: "com.google.android.apps.books_5.13.7_RC02.342110688.car_production-107722_minAPI28(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosPlugShare",
+    apk: "com.xatori.Plugshare_AAOS_v1.8.2-100400_minAPI29(arm64-v8a,armeabi-v7a,x86,x86_64)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosWebView",
+    apk: "com.google.android.webview_148.0.7778.215-777821573_minAPI32(arm64-v8a,armeabi-v7a)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosYouTubeMusic",
+    apk: "com.google.android.apps.youtube.music_9.39.22-CAR_RELEASE-93922540_minAPI30(arm64-v8a)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosCarAssistant",
+    apk: "com.google.android.carassistant_13.1.781.RC02.tng.release.auto-800967975_minAPI30(arm64-v8a)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    privileged: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosGmsCore",
+    apk: "com.google.android.gms_26.36.33_(230400-986028547)-263633098_minAPI30(arm64-v8a,armeabi-v7a)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    privileged: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosPlayStore",
+    apk: "com.android.vending_44.6.15-31_9_PR_716750685-84461519_minAPI31(arm64-v8a,armeabi-v7a,x86,x86_64)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    privileged: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosEvChargerLocator",
+    apk: "com.crosschasm.evchargerlocator_12.11.0-AAOS-325100806_minAPI30(arm64-v8a,armeabi-v7a,x86,x86_64)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosHomeAssistant",
+    apk: "io.homeassistant.companion.android_2026.8.4-full-24231_minAPI29(arm64-v8a,armeabi-v7a,x86,x86_64)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosOpenRadio",
+    apk: "com.yuriy.openradio_15.0.0-712_minAPI28(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}
+
+android_app_import {
+    name: "HeliosCarTemplatesHost",
+    apk: "com.google.android.apps.automotive.templates.host_1.007.951929592.00-arm64-v8a-18534_minAPI30(arm64-v8a)(nodpi)_apkmirror.com.apk",
+    presigned: true,
+    product_specific: true,
+}

@@ -1,0 +1,16 @@
+[package]
+name = "helios-vhal-server"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tonic.workspace = true
+tonic-prost.workspace = true
+prost.workspace = true
+tokio.workspace = true
+tokio-stream.workspace = true
+helios-dds.workspace = true
+
+[build-dependencies]
+protoc-bin-vendored = "3.2.0"
+tonic-prost-build.workspace = true

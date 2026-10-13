@@ -1,0 +1,4 @@
+<resources>
+    <style name="Theme.HeliosHMI" parent="android:Theme.DeviceDefault.NoActionBar">
+    </style>
+</resources>

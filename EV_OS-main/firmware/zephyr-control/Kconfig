@@ -1,0 +1,10 @@
+menu "HELIOS control application"
+
+config HELIOS_CONTROL_WATCHDOG_MS
+	int "Control task watchdog timeout (ms)"
+	range 2 9
+	default 5
+
+endmenu
+
+source "Kconfig.zephyr"

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature android:name="android.hardware.type.automotive" android:required="true" />
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+
+    <application
+        android:name=".HmiApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="HELIOS Hypercar HMI"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.HeliosHMI">
+
+        <!-- Infotainment System Activity (Center Console - Main Display) -->
+        <activity
+            android:name=".infotainment.InfotainmentActivity"
+            android:exported="true"
+            android:theme="@style/Theme.HeliosHMI"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.CAR_DISPLAY_HOME" />
+            </intent-filter>
+        </activity>
+
+        <!-- Digital Gauge Cluster Activity (Driver Display - Secondary Display) -->
+        <activity
+            android:name=".cluster.ClusterActivity"
+            android:exported="true"
+            android:theme="@style/Theme.HeliosHMI"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.automotive.intent.category.CAR_CLUSTER_HOME" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package digital_twin_provider;
+
+service DigitalTwinProvider {
+  rpc Subscribe(SubscribeRequest) returns (SubscribeResponse);
+  rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc Set(SetRequest) returns (SetResponse);
+  rpc Invoke(InvokeRequest) returns (InvokeResponse);
+  rpc Stream(StreamRequest) returns (stream StreamResponse);
+}
+
+message SubscribeRequest {
+  string entity_id = 1;
+  string consumer_uri = 2;
+}
+
+message SubscribeResponse {}
+
+message UnsubscribeRequest {
+  string entity_id = 1;
+  string consumer_uri = 2;
+}
+
+message UnsubscribeResponse {}
+
+message GetRequest {
+  string entity_id = 1;
+  string consumer_uri = 2;
+}
+
+message GetResponse {}
+
+message SetRequest {
+  string entity_id = 1;
+  string value = 2;
+}
+
+message SetResponse {}
+
+message InvokeRequest {
+  string entity_id = 1;
+  string consumer_uri = 2;
+  string response_id = 3;
+  string payload = 4;
+}
+
+message InvokeResponse {}
+
+message StreamRequest {
+  string entity_id = 1;
+}
+
+message StreamResponse {
+  Media media = 1;
+}
+
+message Media {
+  string media_type = 1;
+  bytes media_content = 2;
+}

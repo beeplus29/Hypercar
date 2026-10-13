@@ -1,0 +1,18 @@
+[package]
+name = "helios-zephyr-control-ffi"
+description = "C ABI facade for running HELIOS no_std vehicle control logic from Zephyr"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+helios-core.workspace = true
+helios-vsm.workspace = true
+helios-vdc.workspace = true
+
+[lints]
+workspace = true
